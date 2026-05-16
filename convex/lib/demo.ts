@@ -4,7 +4,6 @@ import demoSimulation from "../seed/demoSimulation.json";
 
 export function isDemoMode(demo?: boolean): boolean {
   if (demo === true) return true;
-  if (demo === false) return false;
   return process.env.DEMO_MODE === "true";
 }
 

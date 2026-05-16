@@ -6,18 +6,14 @@ import {
   AlertTriangle,
   Bookmark,
   Gamepad2,
-  Globe,
-  Pencil,
+  GitBranch,
   Waves,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ChaosMeter } from '@/components/simulation/chaos-meter'
 import { BranchChoice } from '@/components/simulation/branch-choice'
 import { LedgerSplit } from '@/components/simulation/ledger-split'
-import { RelicImage } from '@/components/simulation/relic-image'
 import { RippleList } from '@/components/simulation/ripple-list'
-import { TimelineEventEditor } from '@/components/simulation/timeline-event-editor'
-import type { EditableTimelineEvent } from '@/lib/convex-ui'
 import type { Simulation, SimulationStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -31,21 +27,6 @@ interface SimulationDetailsBentoProps {
   timelineTitle?: string
   onBranchSelect: (branchId: string) => void
   branchGeneratingSlot?: React.ReactNode
-  isOwner?: boolean
-  isPublished?: boolean
-  onSave?: () => void
-  onPublish?: () => void
-  saveBusy?: boolean
-  publishBusy?: boolean
-  actionMessage?: string | null
-  editableEvents?: EditableTimelineEvent[]
-  onEventsChange?: (events: EditableTimelineEvent[]) => void
-  relicPrompt?: string
-  propagating?: boolean
-  simulateDirty?: boolean
-  propagateError?: string | null
-  onRippleForward?: (anchorIndex: number) => void
-  onSimulateChanges?: () => void
 }
 
 function BentoPanel({
@@ -77,35 +58,11 @@ export function SimulationDetailsBento({
   timelineTitle,
   onBranchSelect,
   branchGeneratingSlot,
-  isOwner = false,
-  isPublished = false,
-  onSave,
-  onPublish,
-  saveBusy = false,
-  publishBusy = false,
-  actionMessage,
-  editableEvents,
-  onEventsChange,
-  relicPrompt,
-  propagating = false,
-  simulateDirty = false,
-  propagateError = null,
-  onRippleForward,
-  onSimulateChanges,
 }: SimulationDetailsBentoProps) {
   const showBranches =
     (status === 'phase1_complete' || status === 'phase2_generating') && !selectedBranch
   const showHighChaos = simulation.chaosScore >= 70
   const showStabilize = simulation.chaosScore >= 40
-  const showOwnerActions =
-    isOwner && (status === 'generated' || status === 'published')
-  const showEventEditor =
-    isOwner &&
-    editableEvents &&
-    onEventsChange &&
-    (status === 'generated' || status === 'published')
-  const showRelic =
-    (status === 'generated' || status === 'published') && Boolean(relicPrompt)
 
   return (
     <section id="simulation-details" className="relative z-10 border-t border-border bg-background">
@@ -140,34 +97,10 @@ export function SimulationDetailsBento({
                 </p>
               )}
               <div className="mt-6 flex flex-wrap gap-3 border-t border-border pt-6">
-                {showOwnerActions && onSave && (
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="h-12 min-w-[8.5rem] px-6 text-base"
-                    onClick={onSave}
-                    disabled={saveBusy || publishBusy}
-                  >
-                    <Bookmark className="mr-2 h-5 w-5" />
-                    {saveBusy ? 'Saving…' : 'Save'}
-                  </Button>
-                )}
-                {showOwnerActions && onPublish && !isPublished && (
-                  <Button
-                    size="lg"
-                    className="h-12 min-w-[9rem] px-6 text-base"
-                    onClick={onPublish}
-                    disabled={saveBusy || publishBusy}
-                  >
-                    <Globe className="mr-2 h-5 w-5" />
-                    {publishBusy ? 'Publishing…' : 'Publish'}
-                  </Button>
-                )}
-                {isPublished && (
-                  <span className="inline-flex h-12 items-center rounded-full border border-primary/30 bg-primary/10 px-5 text-sm font-medium text-primary">
-                    Published on dashboard
-                  </span>
-                )}
+                <Button variant="outline" size="lg" className="h-12 min-w-[8.5rem] px-6 text-base">
+                  <Bookmark className="mr-2 h-5 w-5" />
+                  Save
+                </Button>
                 {showStabilize && (
                   <Button
                     variant="outline"
@@ -175,16 +108,13 @@ export function SimulationDetailsBento({
                     className="h-12 min-w-[10rem] border-chaos-amber/40 px-6 text-base text-chaos-amber hover:bg-chaos-amber/10"
                     asChild
                   >
-                    <Link href={`/stabilize/${simulationId}`}>
+                    <Link href={`/simulation/${simulationId}/stabilize`}>
                       <Gamepad2 className="mr-2 h-5 w-5" />
                       Stabilize
                     </Link>
                   </Button>
                 )}
               </div>
-              {actionMessage && (
-                <p className="mt-3 text-sm text-muted-foreground">{actionMessage}</p>
-              )}
             </BentoPanel>
 
             {/* Chaos score */}
@@ -247,46 +177,12 @@ export function SimulationDetailsBento({
             )}
 
             {/* Ledger — full width when complete */}
-            {(status === 'generated' || status === 'published') && (
+            {status === 'generated' && (
               <BentoPanel className="md:col-span-12">
                 <LedgerSplit
                   extinct={simulation.extinct}
                   born={simulation.born}
                   animated
-                />
-              </BentoPanel>
-            )}
-
-            {showRelic && (
-              <BentoPanel className="md:col-span-12">
-                <RelicImage prompt={relicPrompt} />
-              </BentoPanel>
-            )}
-
-            {showEventEditor && (
-              <BentoPanel className="md:col-span-12">
-                <div className="mb-5 flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                    <Pencil className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-serif text-xl font-semibold text-foreground md:text-2xl">
-                      Edit timeline events
-                    </h3>
-                    <p className="text-sm text-muted-foreground md:text-base">
-                      Edit events, ripple forward to rewrite downstream text, then save
-                    </p>
-                  </div>
-                </div>
-                <TimelineEventEditor
-                  events={editableEvents}
-                  onChange={onEventsChange}
-                  disabled={saveBusy || publishBusy}
-                  propagating={propagating}
-                  simulateDirty={simulateDirty}
-                  propagateError={propagateError}
-                  onRippleForward={onRippleForward}
-                  onSimulateChanges={onSimulateChanges}
                 />
               </BentoPanel>
             )}

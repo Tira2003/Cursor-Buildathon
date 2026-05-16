@@ -28,7 +28,6 @@ type ConvexIncident = {
   relatedImageUrl?: string;
   realOutcome: string;
   order: number;
-  exampleWhatIfs?: string[];
 };
 
 type ConvexSimulation = ReturnType<typeof mapSimInput>;
@@ -39,30 +38,10 @@ function mapSimInput(sim: {
   whatIfPrompt?: string;
   chaosScore?: number;
   status: string;
-  immediateRipple?: {
-    year: string
-    title: string
-    description: string
-    imageUrl?: string
-  }[];
-  generationalShift?: {
-    year: string
-    title: string
-    description: string
-    imageUrl?: string
-  }[];
-  globalConsequence?: {
-    year: string
-    title: string
-    description: string
-    imageUrl?: string
-  }[];
-  branchChoices?: {
-    id: string
-    title: string
-    description: string
-    chaosImpact?: number
-  }[];
+  immediateRipple?: { year: string; title: string; description: string }[];
+  generationalShift?: { year: string; title: string; description: string }[];
+  globalConsequence?: { year: string; title: string; description: string }[];
+  branchChoices?: { id: string; title: string; description: string }[];
   selectedBranchId?: string;
   lostToHistory?: string[];
   gainedByHumanity?: string[];
@@ -72,47 +51,6 @@ function mapSimInput(sim: {
   createdAt: number;
 }) {
   return sim;
-}
-
-export type EditableTimelineEvent = {
-  year: string
-  title: string
-  description: string
-  impactLevel: 'low' | 'medium' | 'high'
-  imageUrl?: string
-}
-
-type EventLike = {
-  year: string
-  title: string
-  description: string
-  impactLevel?: 'low' | 'medium' | 'high'
-  imageUrl?: string
-}
-
-export function collectEditableEvents(sim: {
-  events: EventLike[]
-  immediateRipple?: EventLike[]
-  generationalShift?: EventLike[]
-  globalConsequence?: EventLike[]
-}): EditableTimelineEvent[] {
-  const withImpact = (e: EventLike): EditableTimelineEvent => ({
-    year: e.year,
-    title: e.title,
-    description: e.description,
-    impactLevel: e.impactLevel ?? 'medium',
-    imageUrl: e.imageUrl,
-  })
-
-  if (sim.events.length > 0) {
-    return sim.events.map(withImpact)
-  }
-
-  return [
-    ...(sim.immediateRipple ?? []),
-    ...(sim.generationalShift ?? []),
-    ...(sim.globalConsequence ?? []),
-  ].map(withImpact)
 }
 
 export function formatRipple(
@@ -170,7 +108,6 @@ export function mapIncident(inc: ConvexIncident): Incident {
     description: inc.description,
     context: inc.realOutcome,
     image: inc.relatedImageUrl,
-    exampleWhatIfs: inc.exampleWhatIfs,
   };
 }
 
@@ -197,17 +134,11 @@ export function mapSimulationToUi(
     ),
   ];
 
-  const defaultBranchImpact: Record<string, number> = {
-    branch_1: -15,
-    branch_2: -25,
-    branch_3: 30,
-  }
-
   const branches: Branch[] = (sim.branchChoices ?? []).map((b) => ({
     id: b.id,
     title: b.title,
     description: b.description,
-    chaosImpact: b.chaosImpact ?? defaultBranchImpact[b.id] ?? 0,
+    chaosImpact: 0,
   }));
 
   const extinct: LedgerItem[] = (sim.lostToHistory ?? []).map((name, i) => ({
@@ -241,7 +172,7 @@ export function mapSimulationToUi(
 }
 
 function eventToStoryCard(
-  ev: { year: string; title: string; description: string; imageUrl?: string },
+  ev: { year: string; title: string; description: string },
   id: string,
   isAlternate: boolean,
 ): StoryCard {
@@ -251,26 +182,8 @@ function eventToStoryCard(
     title: ev.title,
     description: ev.description,
     imagePrompt: ev.title,
-    image: ev.imageUrl,
     isAlternate,
   };
-}
-
-export const STORY_SLIDE_FALLBACK_IMAGE = '/placeholder.svg'
-
-export function getStorySlidesFromResolvedEvents(
-  events: { year: string; title: string; description: string; imageUrl?: string }[],
-  fallbackImage: string = STORY_SLIDE_FALLBACK_IMAGE,
-): StoryCard[] {
-  return events.map((ev, i) => ({
-    id: `event-slide-${i}`,
-    year: ev.year,
-    title: ev.title,
-    description: ev.description,
-    imagePrompt: ev.title,
-    image: ev.imageUrl?.trim() || fallbackImage,
-    isAlternate: true,
-  }))
 }
 
 export type IncidentContext = {

@@ -16,7 +16,6 @@ export interface Incident {
   description?: string
   context?: string
   image?: string
-  exampleWhatIfs?: string[]
 }
 
 export interface StoryCard {

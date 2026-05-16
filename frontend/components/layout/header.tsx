@@ -35,22 +35,6 @@ export function Header() {
           >
             Community
           </Link>
-          {!isLoading && isAuthenticated && (
-            <>
-              <Link
-                href="/my-simulations"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden md:block"
-              >
-                My Timelines
-              </Link>
-              <Link
-                href="/profile"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden md:block"
-              >
-                Profile
-              </Link>
-            </>
-          )}
           {!isLoading && (
             isAuthenticated ? (
               <Link href="/dashboard">

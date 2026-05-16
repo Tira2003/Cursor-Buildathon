@@ -447,4 +447,4 @@ npm run dev           # terminal 2 — syncs env + http://localhost:3000
 | `.env.local` | Repo root — created by `npx convex dev` |
 | `frontend/.env.local` | Auto-synced copy for Next.js (`npm run sync-env`) |
 
-Copy `.env.example` to `.env.local` at the **repo root**. After `npx convex dev` updates env vars, run `npm run sync-env` (or use `npm run dev`, which syncs automatically). Set `GROQ_API_KEY` in the Convex dashboard for AI actions.
+Copy `.env.example` to `.env.local` at the **repo root**. After `npx convex dev` updates env vars, run `npm run sync-env` (or use `npm run dev`, which syncs automatically). Set `GEMINI_API_KEY` in the Convex dashboard for AI actions.

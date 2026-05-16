@@ -1,5 +1,4 @@
 import type { Doc } from "../_generated/dataModel";
-import type { ApiUsage } from "./apiUsage";
 
 /** Strip Convex system fields so return validators pass. */
 export function mapSimulationDoc(
@@ -28,7 +27,6 @@ export function mapSimulationDoc(
     relicPrompt: sim.relicPrompt,
     relicImageId: sim.relicImageId,
     relicImageUrl,
-    apiUsage: sim.apiUsage as ApiUsage | undefined,
     isChaotic: sim.isChaotic,
     status: sim.status as string,
     visibility: sim.visibility as string,

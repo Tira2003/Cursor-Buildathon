@@ -11,7 +11,6 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
-  apiUsage,
   branchChoice,
   museumScanStatus,
   simulationSource,
@@ -42,34 +41,7 @@ export default defineSchema({
     relatedImageUrl: v.optional(v.string()),
     realOutcome: v.string(),
     order: v.number(),
-    exampleWhatIfs: v.optional(v.array(v.string())),
   }).index("by_timeline_order", ["timelineId", "order"]),
-
-  /** Reused Serper downloads per curated incident + event key (remix optimization). */
-  eventImageCache: defineTable({
-    incidentId: v.id("timelineIncidents"),
-    eventKey: v.string(),
-    imageStorageId: v.id("_storage"),
-    createdAt: v.number(),
-  })
-    .index("by_incident_event", ["incidentId", "eventKey"])
-    .index("by_incident", ["incidentId"]),
-
-  /** Reused Serper downloads per museum scan + event key (museum remix optimization). */
-  museumEventImageCache: defineTable({
-    museumScanId: v.id("museumScans"),
-    eventKey: v.string(),
-    imageStorageId: v.id("_storage"),
-    createdAt: v.number(),
-  })
-    .index("by_scan_event", ["museumScanId", "eventKey"])
-    .index("by_scan", ["museumScanId"]),
-
-  /** Sliding-window rate limit log for Groq / Serper (20/min each). */
-  apiCallLog: defineTable({
-    provider: v.union(v.literal("groq"), v.literal("serper")),
-    createdAt: v.number(),
-  }).index("by_provider_time", ["provider", "createdAt"]),
 
   museumScans: defineTable({
     userId: v.id("users"),
@@ -78,8 +50,6 @@ export default defineSchema({
     extractedArtifactName: v.optional(v.string()),
     extractedLabelText: v.optional(v.string()),
     extractedEra: v.optional(v.string()),
-    historicalContext: v.optional(v.string()),
-    apiUsage: v.optional(apiUsage),
     status: museumScanStatus,
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
@@ -104,7 +74,6 @@ export default defineSchema({
     selectedBranchId: v.optional(v.string()),
     relicPrompt: v.optional(v.string()),
     relicImageId: v.optional(v.id("_storage")),
-    apiUsage: v.optional(apiUsage),
     isChaotic: v.optional(v.boolean()),
     status: simulationStatus,
     visibility,

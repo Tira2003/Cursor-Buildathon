@@ -21,7 +21,7 @@ export function EntryCards() {
               Scan Museum Artifact
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Photograph a museum artifact (label optional). Groq vision identifies it and builds an alternate timeline.
+              Take a photo of any historical artifact and its label. Our AI will identify it and generate alternate timelines.
             </p>
           </div>
           
