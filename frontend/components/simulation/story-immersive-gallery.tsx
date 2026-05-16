@@ -20,6 +20,7 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel'
 import { cn } from '@/lib/utils'
+import { STORY_SLIDE_FALLBACK_IMAGE } from '@/lib/convex-ui'
 import type { StoryCard } from '@/lib/types'
 
 interface StoryImmersiveGalleryProps {
@@ -29,21 +30,28 @@ interface StoryImmersiveGalleryProps {
   simulationId?: string
   incidentId?: string
   onScrollToDetails?: () => void
+  onRemix?: () => void | Promise<void>
+  remixHint?: string
+  galleryLoading?: boolean
+  galleryLoadingMessage?: string
 }
 
 function FrostedActionButton({
   children,
   onClick,
   className,
+  title,
 }: {
   children: React.ReactNode
   onClick?: () => void
   className?: string
+  title?: string
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={title}
       className={cn(
         'inline-flex h-12 min-w-[7.5rem] items-center justify-center gap-2.5 rounded-full',
         'border border-white/25 bg-white/15 px-5 text-base font-semibold text-white',
@@ -64,6 +72,10 @@ export function StoryImmersiveGallery({
   simulationId,
   incidentId,
   onScrollToDetails,
+  onRemix,
+  remixHint,
+  galleryLoading = false,
+  galleryLoadingMessage = 'Updating timeline…',
 }: StoryImmersiveGalleryProps) {
   const router = useRouter()
   const [api, setApi] = useState<CarouselApi>()
@@ -107,12 +119,16 @@ export function StoryImmersiveGallery({
   }, [whatIf])
 
   const handleRemix = useCallback(() => {
+    if (onRemix) {
+      void onRemix()
+      return
+    }
     if (incidentId) {
       router.push(`/simulate/${incidentId}`)
       return
     }
     router.push('/timelines')
-  }, [incidentId, router])
+  }, [incidentId, onRemix, router])
 
   return (
     <section className="relative h-[100dvh] w-full shrink-0 overflow-hidden bg-black">
@@ -151,6 +167,14 @@ export function StoryImmersiveGallery({
         )}
       </Carousel>
 
+      {galleryLoading && (
+        <div className="absolute inset-0 z-[25] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <p className="rounded-full border border-white/20 bg-black/50 px-6 py-3 text-sm font-medium text-white">
+            {galleryLoadingMessage}
+          </p>
+        </div>
+      )}
+
       {/* Top bar: back left, frosted actions right */}
       <div className="absolute top-0 z-30 flex w-full items-start justify-between gap-3 px-4 pt-4 md:px-8 md:pt-6">
         <Link
@@ -166,7 +190,11 @@ export function StoryImmersiveGallery({
             <Share2 className="h-5 w-5" />
             {shareLabel}
           </FrostedActionButton>
-          <FrostedActionButton onClick={handleRemix}>
+          <FrostedActionButton
+            onClick={handleRemix}
+            className={remixHint ? 'min-w-[8.5rem]' : undefined}
+            title={remixHint}
+          >
             <GitBranch className="h-5 w-5" />
             Remix
           </FrostedActionButton>
@@ -212,7 +240,13 @@ export function StoryImmersiveGallery({
 }
 
 function StorySlide({ card }: { card: StoryCard }) {
-  const imageSrc = card.image ?? '/images/relic-demo.jpg'
+  const [imageSrc, setImageSrc] = useState(
+    () => card.image?.trim() || STORY_SLIDE_FALLBACK_IMAGE,
+  )
+
+  useEffect(() => {
+    setImageSrc(card.image?.trim() || STORY_SLIDE_FALLBACK_IMAGE)
+  }, [card.image])
 
   return (
     <div className="group relative h-full w-full">
@@ -223,6 +257,7 @@ function StorySlide({ card }: { card: StoryCard }) {
         priority
         className="object-cover"
         sizes="100vw"
+        onError={() => setImageSrc(STORY_SLIDE_FALLBACK_IMAGE)}
       />
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/30" />

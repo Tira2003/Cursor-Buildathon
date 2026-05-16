@@ -18,7 +18,11 @@ export const recordAttempt = mutation({
   handler: async (ctx, args) => {
     const playerId = await requireUserId(ctx);
     const target = await ctx.db.get(args.targetSimulationId);
-    if (!target || target.visibility !== "public") {
+    if (!target) {
+      throw new Error("Target simulation not available");
+    }
+    const isOwner = target.userId === playerId;
+    if (target.visibility !== "public" && !isOwner) {
       throw new Error("Target simulation not available");
     }
 

@@ -51,6 +51,7 @@ export const getBySlug = query({
           relatedImageUrl: v.optional(v.string()),
           realOutcome: v.string(),
           order: v.number(),
+          exampleWhatIfs: v.optional(v.array(v.string())),
         }),
       ),
     }),
@@ -78,6 +79,7 @@ export const getBySlug = query({
       relatedImageUrl: inc.relatedImageUrl,
       realOutcome: inc.realOutcome,
       order: inc.order,
+      exampleWhatIfs: inc.exampleWhatIfs,
     }));
 
     return {

@@ -1,11 +1,14 @@
 "use node";
 
 import { action } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { v } from "convex/values";
+import { ApiCallTracker } from "../lib/apiUsage";
+import { apiUsage as apiUsageValidator } from "../validators";
 import { demoMuseum, isDemoMode } from "../lib/demo";
-import { generateJson } from "../lib/gemini";
-import { isGeminiQuotaError } from "../lib/geminiErrors";
+import { generateJson } from "../lib/groq";
+import { isLlmQuotaError } from "../lib/llmErrors";
+import { normalizeTimelineEvents } from "../lib/normalizeLlm";
 import type { TimelineEvent } from "../types/contracts";
 
 export const run = action({
@@ -14,8 +17,28 @@ export const run = action({
     durationId: v.string(),
     demo: v.optional(v.boolean()),
   },
-  returns: v.object({ ok: v.boolean() }),
+  returns: v.object({
+    ok: v.boolean(),
+    apiUsage: v.optional(apiUsageValidator),
+  }),
   handler: async (ctx, args) => {
+    const tracker = new ApiCallTracker();
+
+    const runEnrich = async () => {
+      try {
+        const result = await ctx.runAction(api.actions.enrichTimelineImages.run, {
+          simulationId: args.simulationId,
+          which: "museum",
+          demo: args.demo,
+        });
+        tracker.incrementSerper(result.serperCalls);
+        return result;
+      } catch (err) {
+        console.error("[AltEra] museum image enrich failed:", err);
+        throw err;
+      }
+    };
+
     if (isDemoMode(args.demo)) {
       const t = demoMuseum.timeline;
       await ctx.runMutation(internal.simulationsInternal.patchMuseumTimeline, {
@@ -41,7 +64,44 @@ export const run = action({
       });
     };
 
-    const duration = demoMuseum.durations.options.find((o) => o.id === args.durationId);
+    const museumCtx = await ctx.runQuery(
+      internal.simulationsInternal.getMuseumGenerationContext,
+      { simulationId: args.simulationId },
+    );
+    if (!museumCtx) throw new Error("Museum context not found");
+
+    tracker.addFrom(museumCtx.scanApiUsage);
+
+    const durationLabel =
+      museumCtx.selectedDurationLabel ?? args.durationId;
+
+    const simForEnrich = await ctx.runQuery(internal.simulationsInternal.getForEnrich, {
+      simulationId: args.simulationId,
+    });
+    let remixLines = "";
+    if (simForEnrich?.remixOfSimulationId) {
+      const parentCtx = await ctx.runQuery(
+        internal.simulationsInternal.getMuseumRemixParentContext,
+        { remixOfSimulationId: simForEnrich.remixOfSimulationId },
+      );
+      if (parentCtx) {
+        remixLines = `\nRemix of prior museum timeline for "${parentCtx.artifactName}".`;
+        if (parentCtx.selectedDurationLabel) {
+          remixLines += ` Parent span: ${parentCtx.selectedDurationLabel}.`;
+        }
+        if (parentCtx.eventTitlesSummary) {
+          remixLines += ` Prior events: ${parentCtx.eventTitlesSummary}.`;
+        }
+      }
+    }
+
+    const userPrompt = `Museum artifact: ${museumCtx.extractedArtifactName}
+Label text: ${museumCtx.extractedLabelText}
+Estimated era: ${museumCtx.extractedEra ?? "unknown"}
+Historical context: ${museumCtx.historicalContext ?? "none"}
+Timeline span: ${durationLabel} (${args.durationId})${remixLines}
+
+Generate an alternate history timeline branching from this artifact.`;
 
     try {
       const data = await generateJson<{
@@ -51,24 +111,45 @@ export const run = action({
         gainedByHumanity: string[];
         relicPrompt: string;
       }>(
-        `Generate alternate timeline JSON: { chaosScore, events[], lostToHistory[], gainedByHumanity[], relicPrompt }`,
-        `Museum artifact timeline span: ${duration?.label ?? args.durationId} (${duration?.description ?? ""})`,
+        `Generate alternate timeline JSON: { chaosScore, events[{ year, title, description, impactLevel }], lostToHistory[], gainedByHumanity[], relicPrompt }. Include exactly 6–8 events spanning the chosen duration. impactLevel must be exactly "low", "medium", or "high" (strings, not numbers).`,
+        userPrompt,
+        tracker,
+        ctx,
       );
+
+      const events = normalizeTimelineEvents(data.events) as TimelineEvent[];
 
       await ctx.runMutation(internal.simulationsInternal.patchMuseumTimeline, {
         simulationId: args.simulationId,
         chaosScore: data.chaosScore,
-        events: data.events as TimelineEvent[],
+        events,
         lostToHistory: data.lostToHistory,
         gainedByHumanity: data.gainedByHumanity,
         relicPrompt: data.relicPrompt,
       });
-      return { ok: true };
+
+      await runEnrich();
+
+      const usage = tracker.toUsage();
+      await ctx.runMutation(internal.simulationsInternal.patchApiUsage, {
+        simulationId: args.simulationId,
+        apiUsage: usage,
+      });
+
+      return { ok: true, apiUsage: usage };
     } catch (err) {
-      if (isGeminiQuotaError(err)) {
-        console.warn("[AltEra] Gemini quota exceeded — using demo museum timeline");
+      if (isLlmQuotaError(err)) {
+        console.warn("[AltEra] Groq quota exceeded — using demo museum timeline");
         await applyDemo();
-        return { ok: true };
+        await runEnrich();
+        const usage = tracker.toUsage();
+        if (usage.total > 0) {
+          await ctx.runMutation(internal.simulationsInternal.patchApiUsage, {
+            simulationId: args.simulationId,
+            apiUsage: usage,
+          });
+        }
+        return { ok: true, apiUsage: usage.total > 0 ? usage : undefined };
       }
       throw err;
     }

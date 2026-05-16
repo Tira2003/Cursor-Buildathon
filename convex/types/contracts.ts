@@ -7,12 +7,15 @@ export type TimelineEvent = {
   title: string;
   description: string;
   impactLevel: ImpactLevel;
+  imageStorageId?: import("../_generated/dataModel").Id<"_storage">;
+  imageUrl?: string;
 };
 
 export type BranchChoice = {
   id: string;
   title: string;
   description: string;
+  chaosImpact?: number;
 };
 
 export type SimulationSource = "museum" | "curated";

@@ -47,18 +47,21 @@ const demoRomanPhase1: Phase1Fixture = {
       title: "Caesar reforms the Republic",
       description:
         "Caesar uses his survival to push land reform, term limits, and a new senatorial compact.",
+      chaosImpact: -20,
     },
     {
       id: "branch_2",
       title: "The Senate reasserts control",
       description:
         "Brutus and the optimates declare a restored Republic and purge Caesar's loyalists.",
+      chaosImpact: -10,
     },
     {
       id: "branch_3",
       title: "Civil war reignites",
       description:
         "Loyalist legions march on Rome; Italy fractures between populares and optimates again.",
+      chaosImpact: 40,
     },
   ],
 };
@@ -111,18 +114,21 @@ const demoKandyanPhase1: Phase1Fixture = {
       title: "The king rallies the highlands",
       description:
         "Sri Vikrama Rajasinha mobilizes Kandyan forces to expel British residents from the interior.",
+      chaosImpact: -15,
     },
     {
       id: "branch_2",
       title: "Chiefs negotiate a protectorate",
       description:
         "Moderate chieftains seek British recognition of the monarchy in exchange for trade access.",
+      chaosImpact: -25,
     },
     {
       id: "branch_3",
       title: "Guerrilla war spreads island-wide",
       description:
         "Lowland and highland militias coordinate hit-and-run campaigns against colonial garrisons.",
+      chaosImpact: 35,
     },
   ],
 };

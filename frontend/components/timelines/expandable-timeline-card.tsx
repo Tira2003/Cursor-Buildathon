@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation'
 import { Calendar, ChevronDown, Sparkles, Send, Clock, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Timeline, Incident } from '@/lib/types'
+import {
+  getExampleWhatIfs,
+  getIncidentPlaceholder,
+} from '@/lib/incident-prompts'
 
 interface ExpandableTimelineCardProps {
   timeline: Timeline
@@ -180,7 +184,7 @@ export function ExpandableTimelineCard({
                   value={whatIfInput}
                   onChange={(e) => setWhatIfInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="What if the assassin missed? What if the treaty was signed a day earlier? What if..."
+                  placeholder={getIncidentPlaceholder(selectedIncident)}
                   className="w-full h-24 px-4 py-3 pr-12 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                   maxLength={200}
                 />
@@ -211,7 +215,7 @@ export function ExpandableTimelineCard({
 
               {/* Example prompts */}
               <div className="mt-3 flex flex-wrap gap-2">
-                {getExamplePrompts(selectedIncident).map((prompt, i) => (
+                {getExampleWhatIfs(selectedIncident).map((prompt, i) => (
                   <button
                     key={i}
                     onClick={() => setWhatIfInput(prompt)}
@@ -302,33 +306,5 @@ function IncidentRow({
       </div>
     </button>
   )
-}
-
-// Helper to get contextual example prompts
-function getExamplePrompts(incident: Incident): string[] {
-  const prompts: Record<string, string[]> = {
-    'sarajevo-1914': [
-      'What if the assassin hesitated?',
-      'What if the driver took a different route?',
-      'What if Franz Ferdinand wore armor?'
-    ],
-    'cuban-missile-crisis': [
-      'What if Kennedy ordered the invasion?',
-      'What if a submarine launched its torpedo?',
-      'What if Khrushchev refused to back down?'
-    ],
-    'moon-landing': [
-      'What if the Soviets landed first?',
-      'What if the mission failed?',
-      'What if they found something unexpected?'
-    ],
-    'default': [
-      'What if it never happened?',
-      'What if it happened a year later?',
-      'What if the outcome was different?'
-    ]
-  }
-  
-  return prompts[incident.id] || prompts['default']
 }
 

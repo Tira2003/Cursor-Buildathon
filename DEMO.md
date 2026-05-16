@@ -26,7 +26,7 @@
 1. **Browse historical timelines** → **Kandyan Kingdom (Mahanuwara)**.
 2. Select **The Kandyan Convention, 1815**.
 3. What if (one sentence), e.g.: *“What if the Kandyan chieftains refused to sign and rallied behind the King?”*
-4. Phase 1 → pick a branch → phase 2 → relic image.
+4. Phase 1 → pick a branch → phase 2 → story slides get web photos (Serper); relic shows as text caption only.
 5. Show ledger: what goes **extinct**, what was **born**, **chaos ~78** (matches `demoSimulation.json`).
 6. **Publish** to the feed.
 
@@ -51,6 +51,26 @@
 | Museum | 40s |
 | Curated (Kandyan Convention) | 40s |
 | Stabilize | 40s |
+
+---
+
+## Environment (Convex)
+
+- `GROQ_API_KEY` — all LLM text + museum vision (`npx convex env set GROQ_API_KEY …`)
+- `SERPER_API_KEY` — per-event historical photos (`npx convex env set SERPER_API_KEY …`). Skipped when `?demo=1`.
+
+**Museum flow API counts (live, typical):** ~1 Groq vision (analyze) + ~1 Groq text (durations) + ~1 Groq text (timeline) + ~1 Serper per timeline event. Shown on the simulation page as `apiUsage`.
+
+### Avoiding API failures (Groq backend)
+
+| Old Gemini pitfall | AltEra status |
+|--------------------|---------------|
+| Safety filters blocking WWI/WWII topics | **N/A** — we use Groq, not Gemini `safetySettings`. Prompts include educational alternate-history context. |
+| 429 from React `useEffect` firing twice | **Mitigated** — museum analyze/durations use `useRef` guards; timeline/phase actions run on button click only. |
+| API key in source / GitHub | **Avoided** — `GROQ_API_KEY` only in Convex env (`npx convex env set`), never in committed code. |
+| 400 invalid JSON | **Mitigated** — `response_format: json_object` + explicit JSON field lists in prompts; parse errors logged with response snippet. |
+
+On failure, check Convex action logs for `Groq API 429` (rate limit), `403` (key), or `400` (bad request).
 
 ---
 
