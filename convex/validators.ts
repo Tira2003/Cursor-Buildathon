@@ -11,12 +11,24 @@ export const timelineEvent = v.object({
   title: v.string(),
   description: v.string(),
   impactLevel,
+  imageStorageId: v.optional(v.id("_storage")),
+});
+
+/** API response: stored event plus resolved image URL. */
+export const timelineEventOut = v.object({
+  year: v.string(),
+  title: v.string(),
+  description: v.string(),
+  impactLevel,
+  imageStorageId: v.optional(v.id("_storage")),
+  imageUrl: v.optional(v.string()),
 });
 
 export const branchChoice = v.object({
   id: v.string(),
   title: v.string(),
   description: v.string(),
+  chaosImpact: v.optional(v.number()),
 });
 
 export const simulationSource = v.union(
@@ -42,3 +54,10 @@ export const museumScanStatus = v.union(
   v.literal("analyzed"),
   v.literal("confirmed"),
 );
+
+export const apiUsage = v.object({
+  groq: v.number(),
+  serper: v.number(),
+  total: v.number(),
+  updatedAt: v.number(),
+});

@@ -1,6 +1,6 @@
 'use client'
 
-import { useAction, useQuery } from 'convex/react'
+import { useAction, useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -10,12 +10,13 @@ import { Id } from '@/convex/_generated/dataModel'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { incidentContextFromConvex } from '@/lib/convex-ui'
+import { getExampleWhatIfs, getIncidentPlaceholder } from '@/lib/incident-prompts'
 import { useDemoMode } from '@/lib/useDemoMode'
 
 function generationErrorMessage(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err)
-  if (msg.includes('429') || msg.includes('quota')) {
-    return 'Gemini quota exceeded. Retry later, add an API key in Convex, or use ?demo=1 in the URL.'
+  if (msg.includes('429') || msg.includes('quota') || msg.includes('Rate limit: max')) {
+    return 'API rate limit reached (20/min). Wait a minute, retry, or use ?demo=1 in the URL.'
   }
   return 'Generation failed. Try again or add ?demo=1 to the URL.'
 }
@@ -24,23 +25,19 @@ interface SimulatePageClientProps {
   incidentId: string
 }
 
-const whatIfExamples = [
-  'What if the key figure had survived?',
-  'What if the event happened 10 years later?',
-  'What if a crucial decision went the other way?',
-  'What if the weather had been different that day?',
-  'What if a secret alliance had been discovered?',
-]
-
 export function SimulatePageClient({ incidentId }: SimulatePageClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const demo = useDemoMode()
   const timelineIdParam = searchParams.get('timelineId')
+  const remixSimulationId = searchParams.get('remixSimulationId')
   const data = useQuery(api.incidents.get, {
     incidentId: incidentId as Id<'timelineIncidents'>,
   })
   const generate = useAction(api.engine.generateFromWhatIf)
+  const generatePhaseOne = useAction(api.actions.generatePhaseOne.run)
+  const saveWhatIfPrompt = useMutation(api.simulations.setWhatIf)
+  const setGenerating = useMutation(api.simulations.setGenerating)
   const [whatIf, setWhatIf] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -71,6 +68,8 @@ export function SimulatePageClient({ incidentId }: SimulatePageClientProps) {
   }
   
   const { timeline, incident } = incidentContextFromConvex(data.timeline, data.incident)
+  const exampleWhatIfs = getExampleWhatIfs(incident)
+  const placeholder = getIncidentPlaceholder(incident)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,6 +80,19 @@ export function SimulatePageClient({ incidentId }: SimulatePageClientProps) {
     setNotice(null)
 
     try {
+      if (remixSimulationId) {
+        const simulationId = remixSimulationId as Id<'simulations'>
+        await saveWhatIfPrompt({ simulationId, whatIfPrompt: whatIf.trim() })
+        await setGenerating({ simulationId })
+        const result = await generatePhaseOne({ simulationId, demo })
+        if (result.usedDemoFallback) {
+          setNotice('Live AI quota exceeded — loaded timeline-specific demo data.')
+        }
+        const qs = demo || result.usedDemoFallback ? '?demo=1' : ''
+        router.push(`/simulation/${simulationId}${qs}`)
+        return
+      }
+
       const { simulationId, usedDemoFallback } = await generate({
         incidentId: incidentId as Id<'timelineIncidents'>,
         originalTimelineId:
@@ -147,10 +159,12 @@ export function SimulatePageClient({ incidentId }: SimulatePageClientProps) {
               </div>
               <div>
                 <h2 className="font-serif text-xl font-semibold text-foreground">
-                  Rewrite This Moment
+                  {remixSimulationId ? 'Remix This Timeline' : 'Rewrite This Moment'}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Describe your alternate scenario in one sentence
+                  {remixSimulationId
+                    ? 'Enter a new what-if for your remix draft. Photos from this incident are reused when possible.'
+                    : 'Describe your alternate scenario in one sentence'}
                 </p>
               </div>
             </div>
@@ -160,7 +174,7 @@ export function SimulatePageClient({ incidentId }: SimulatePageClientProps) {
                 <textarea
                   value={whatIf}
                   onChange={(e) => setWhatIf(e.target.value.slice(0, maxLength))}
-                  placeholder="What if..."
+                  placeholder={placeholder}
                   className="w-full h-32 px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                   disabled={isGenerating}
                 />
@@ -179,7 +193,7 @@ export function SimulatePageClient({ incidentId }: SimulatePageClientProps) {
                   <span className="text-xs text-muted-foreground">Need inspiration?</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {whatIfExamples.slice(0, 3).map((example, index) => (
+                  {exampleWhatIfs.map((example, index) => (
                     <button
                       key={index}
                       type="button"

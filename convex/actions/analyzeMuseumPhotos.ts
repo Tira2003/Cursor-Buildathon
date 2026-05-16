@@ -3,9 +3,10 @@
 import { action } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
+import { ApiCallTracker } from "../lib/apiUsage";
 import { demoMuseum, isDemoMode } from "../lib/demo";
-import { generateJsonWithImages } from "../lib/gemini";
-import { isGeminiQuotaError } from "../lib/geminiErrors";
+import { generateJsonWithImages } from "../lib/groq";
+import { isLlmQuotaError } from "../lib/llmErrors";
 
 const visionResult = v.object({
   artifactName: v.string(),
@@ -37,6 +38,7 @@ export const run = action({
         extractedArtifactName: data.artifactName,
         extractedLabelText: data.labelText,
         extractedEra: data.estimatedEra,
+        historicalContext: data.historicalContext,
       });
       return {
         artifactName: data.artifactName,
@@ -60,6 +62,7 @@ export const run = action({
         extractedArtifactName: data.artifactName,
         extractedLabelText: data.labelText,
         extractedEra: data.estimatedEra,
+        historicalContext: data.historicalContext,
       });
       return {
         artifactName: data.artifactName,
@@ -72,6 +75,8 @@ export const run = action({
     };
 
     const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
+    const tracker = new ApiCallTracker();
+
     try {
       const data = await generateJsonWithImages<{
         artifactName: string;
@@ -84,10 +89,20 @@ export const run = action({
         `Analyze museum artifact and label photos. Return JSON: { artifactName, artifactType, labelText, estimatedEra, historicalContext, confidence 0-1 }`,
         [
           { text: "Artifact photo:" },
-          { imageUrl: scan.artifactUrl.startsWith("http") ? scan.artifactUrl : `${siteUrl}${scan.artifactUrl}` },
+          {
+            imageUrl: scan.artifactUrl.startsWith("http")
+              ? scan.artifactUrl
+              : `${siteUrl}${scan.artifactUrl}`,
+          },
           { text: "Museum label photo:" },
-          { imageUrl: scan.labelUrl.startsWith("http") ? scan.labelUrl : `${siteUrl}${scan.labelUrl}` },
+          {
+            imageUrl: scan.labelUrl.startsWith("http")
+              ? scan.labelUrl
+              : `${siteUrl}${scan.labelUrl}`,
+          },
         ],
+        tracker,
+        ctx,
       );
 
       await ctx.runMutation(internal.museumScansInternal.patchAnalyzed, {
@@ -95,12 +110,18 @@ export const run = action({
         extractedArtifactName: data.artifactName,
         extractedLabelText: data.labelText,
         extractedEra: data.estimatedEra,
+        historicalContext: data.historicalContext,
+      });
+
+      await ctx.runMutation(internal.museumScansInternal.patchApiUsage, {
+        scanId: args.scanId,
+        apiUsage: tracker.toUsage(),
       });
 
       return data;
     } catch (err) {
-      if (isGeminiQuotaError(err)) {
-        console.warn("[AltEra] Gemini quota exceeded — using demo museum vision");
+      if (isLlmQuotaError(err)) {
+        console.warn("[AltEra] Groq quota exceeded — using demo museum vision");
         return await applyDemo();
       }
       throw err;

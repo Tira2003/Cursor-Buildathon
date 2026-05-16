@@ -98,6 +98,7 @@ export const seedAll = internalMutation({
         relatedImageUrl: INCIDENT_IMAGES[row.order],
         realOutcome: row.realOutcome,
         order: row.order,
+        exampleWhatIfs: row.exampleWhatIfs,
       });
       incidentIds.set(row.order, id);
     }

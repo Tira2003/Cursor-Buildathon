@@ -26,18 +26,21 @@ export const demoPhase1 = {
       title: "Europe chooses diplomacy",
       description:
         "Major powers form a tense diplomatic council to avoid continent-wide war.",
+      chaosImpact: -15,
     },
     {
       id: "branch_2",
       title: "Militarism intensifies",
       description:
         "Nations avoid war temporarily but expand armies and weapons programs.",
+      chaosImpact: -25,
     },
     {
       id: "branch_3",
       title: "Nationalist revolts spread",
       description:
         "Ethnic and nationalist movements challenge the old imperial order from within.",
+      chaosImpact: 30,
     },
   ] satisfies BranchChoice[],
 };

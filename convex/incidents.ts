@@ -15,6 +15,7 @@ export const get = query({
         relatedImageUrl: v.optional(v.string()),
         realOutcome: v.string(),
         order: v.number(),
+        exampleWhatIfs: v.optional(v.array(v.string())),
       }),
       timeline: v.object({
         _id: v.id("predefinedTimelines"),
@@ -44,6 +45,7 @@ export const get = query({
         relatedImageUrl: inc.relatedImageUrl,
         realOutcome: inc.realOutcome,
         order: inc.order,
+        exampleWhatIfs: inc.exampleWhatIfs,
       },
       timeline: {
         _id: timeline._id,

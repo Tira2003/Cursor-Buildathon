@@ -239,7 +239,7 @@ export const mockSimulation: Simulation = {
     { id: 'b5', name: 'Slavic Autonomy Act', description: 'Peaceful resolution of ethnic tensions', year: '1922' }
   ],
   relicPrompt: 'A sepia-toned photograph from 1964 showing Emperor Franz Ferdinand II, aged 80, at the groundbreaking ceremony for the Danubian Maglev Railway in Vienna, surrounded by dignitaries from the federated states.',
-  relicImage: '/images/relic-demo.jpg',
+  relicImage: '/placeholder.svg',
   storyCards: [
     {
       id: 'story-1',
@@ -427,14 +427,14 @@ export function getStorySlides(
     return simulation.storyCards
   }
 
-  const image = incidentImage ?? simulation.relicImage ?? '/images/relic-demo.jpg'
+  const fallbackImage = incidentImage ?? '/placeholder.svg'
   return simulation.ripples.slice(0, 5).map((ripple, index) => ({
     id: `ripple-slide-${index}`,
     year: '—',
     title: `Consequence ${index + 1}`,
     description: ripple,
     imagePrompt: '',
-    image,
+    image: fallbackImage,
     isAlternate: true,
   }))
 }
