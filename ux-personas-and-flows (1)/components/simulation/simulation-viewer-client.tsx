@@ -1,0 +1,315 @@
+'use client'
+
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { 
+  ArrowLeft, 
+  Share2, 
+  Bookmark, 
+  AlertTriangle, 
+  Gamepad2, 
+  GitBranch, 
+  Waves, 
+  Zap,
+  ChevronRight,
+  Shuffle
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ChaosMeter } from '@/components/simulation/chaos-meter'
+import { LedgerSplit } from '@/components/simulation/ledger-split'
+import { RippleList } from '@/components/simulation/ripple-list'
+import { FullscreenStoryViewer } from '@/components/simulation/fullscreen-story-viewer'
+import { AuroraLoadingScreen } from '@/components/simulation/aurora-loading-screen'
+import { mockSimulation, mockSimulationHighChaos, getIncidentById } from '@/lib/mock-data'
+import type { Simulation, SimulationStatus } from '@/lib/types'
+
+interface SimulationViewerClientProps {
+  simulationId: string
+}
+
+const LOADING_DURATION = 6000
+
+export function SimulationViewerClient({ simulationId }: SimulationViewerClientProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const whatIfParam = searchParams.get('whatIf')
+  const detailsRef = useRef<HTMLDivElement>(null)
+
+  const remixHref = `/simulation/${simulationId}/remix${
+    whatIfParam ? `?whatIf=${encodeURIComponent(whatIfParam)}` : ''
+  }`
+
+  const goToRemix = () => router.push(remixHref)
+  
+  const [simulation, setSimulation] = useState<Simulation | null>(null)
+  const [status, setStatus] = useState<SimulationStatus>('generating')
+  
+  useEffect(() => {
+    if (status !== 'generating') return
+    
+    const timer = setTimeout(() => {
+      loadSimulation()
+    }, LOADING_DURATION)
+    
+    return () => clearTimeout(timer)
+  }, [status])
+  
+  const loadSimulation = useCallback(async () => {
+    let sim: Simulation
+    if (simulationId === 'demo-cuban-1') {
+      sim = mockSimulationHighChaos
+    } else {
+      sim = { ...mockSimulation }
+      if (whatIfParam) {
+        sim.whatIf = whatIfParam
+      }
+    }
+    
+    setSimulation(sim)
+    setStatus('generated')
+  }, [simulationId, whatIfParam])
+  
+  const scrollToDetails = () => {
+    detailsRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+  
+  const incidentData = simulation ? getIncidentById(simulation.incidentId) : null
+  
+  if (status === 'generating' || !simulation) {
+    return <AuroraLoadingScreen whatIfPrompt={whatIfParam || 'Generating alternate timeline...'} />
+  }
+
+  const hasStoryCards = simulation.storyCards && simulation.storyCards.length > 0
+  const isHighChaos = simulation.chaosScore >= 70
+  const needsStabilization = simulation.chaosScore >= 40
+  
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Fullscreen Story Viewer */}
+      {hasStoryCards && (
+        <FullscreenStoryViewer
+          cards={simulation.storyCards!}
+          whatIf={simulation.whatIf}
+          onScrollToDetails={scrollToDetails}
+          onShare={() => console.log('Share')}
+          onSave={() => console.log('Save')}
+          onRemix={goToRemix}
+        />
+      )}
+
+      {/* Details Section - Below the fold */}
+      <div ref={detailsRef}>
+        {/* Sticky Quick Actions Bar */}
+        <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
+          <div className="max-w-6xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between gap-4">
+              {/* Back button */}
+              <Link 
+                href="/timelines"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Timelines</span>
+              </Link>
+
+              {/* Quick Navigation Buttons */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={() => scrollToSection('ripples')}
+                  className="h-11 px-4 gap-2"
+                >
+                  <Waves className="w-5 h-5" />
+                  <span className="hidden md:inline">Ripples</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={() => scrollToSection('consequences')}
+                  className="h-11 px-4 gap-2"
+                >
+                  <GitBranch className="w-5 h-5" />
+                  <span className="hidden md:inline">Consequences</span>
+                </Button>
+                {needsStabilization && (
+                  <Link href={`/simulation/${simulationId}/stabilize`}>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="h-11 px-4 gap-2 border-chaos-amber/50 text-chaos-amber hover:bg-chaos-amber/10"
+                    >
+                      <Gamepad2 className="w-5 h-5" />
+                      <span className="hidden md:inline">Stabilize</span>
+                    </Button>
+                  </Link>
+                )}
+              </div>
+
+              {/* Right side actions */}
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="lg" className="h-11 w-11 p-0">
+                  <Share2 className="w-5 h-5" />
+                </Button>
+                <Button variant="ghost" size="lg" className="h-11 w-11 p-0">
+                  <Bookmark className="w-5 h-5" />
+                </Button>
+                <Button
+                  size="lg"
+                  className="h-11 px-4 gap-2 bg-primary hover:bg-primary/90"
+                  onClick={goToRemix}
+                >
+                  <Shuffle className="w-5 h-5" />
+                  <span className="hidden sm:inline">Remix</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-12">
+          <div className="max-w-6xl mx-auto">
+            
+            {/* Bento Grid Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              
+              {/* What-If Card - Spans 2 columns */}
+              <div className="md:col-span-2 lg:col-span-2 rounded-2xl border border-border bg-card p-8">
+                {incidentData && (
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {incidentData.timeline.title} &middot; {incidentData.incident.date}
+                  </p>
+                )}
+                <h1 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-4">
+                  &ldquo;{simulation.whatIf}&rdquo;
+                </h1>
+                {incidentData && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span className="text-sm">Original event:</span>
+                    <span className="text-sm font-medium text-foreground">{incidentData.incident.title}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Chaos Score Card */}
+              <div className="lg:col-span-1">
+                <ChaosMeter score={simulation.chaosScore} variant="card" animated={true} />
+              </div>
+
+              {/* Timeline Fracturing Warning - Full width if high chaos */}
+              {isHighChaos && (
+                <div className="md:col-span-2 lg:col-span-3">
+                  <div className="relative overflow-hidden rounded-2xl border border-chaos-red/30 bg-gradient-to-r from-chaos-red/10 via-chaos-red/5 to-transparent p-6">
+                    {/* Animated background pulse */}
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,_var(--tw-gradient-stops))] from-chaos-red/20 via-transparent to-transparent animate-pulse" />
+                    
+                    <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-chaos-red/20 flex items-center justify-center flex-shrink-0">
+                          <AlertTriangle className="w-7 h-7 text-chaos-red" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-serif font-bold text-foreground mb-2">
+                            Timeline Fracturing Detected
+                          </h3>
+                          <p className="text-muted-foreground max-w-xl">
+                            This alternate history has dangerously high chaos levels. The timeline fabric is 
+                            becoming unstable and may collapse. Stabilization is strongly recommended.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <Link href={`/simulation/${simulationId}/stabilize`}>
+                        <Button 
+                          size="lg" 
+                          className="h-14 px-8 gap-3 bg-chaos-red hover:bg-chaos-red/90 text-white whitespace-nowrap"
+                        >
+                          <Gamepad2 className="w-6 h-6" />
+                          Stabilize Now
+                          <ChevronRight className="w-5 h-5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Ripple Effects Section */}
+            <div id="ripples" className="mb-12 scroll-mt-24">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Waves className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-serif text-2xl font-bold text-foreground">Ripple Effects</h2>
+                  <p className="text-sm text-muted-foreground">How history unfolded differently</p>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-8">
+                <RippleList ripples={simulation.ripples} animated={true} />
+              </div>
+            </div>
+            
+            {/* Consequences Section - Ledger Split */}
+            <div id="consequences" className="mb-12 scroll-mt-24">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <GitBranch className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-serif text-2xl font-bold text-foreground">Consequences</h2>
+                  <p className="text-sm text-muted-foreground">What was lost and what emerged</p>
+                </div>
+              </div>
+              <LedgerSplit 
+                extinct={simulation.extinct} 
+                born={simulation.born}
+                animated={true}
+              />
+            </div>
+
+            {/* Bottom CTA - If needs stabilization */}
+            {needsStabilization && !isHighChaos && (
+              <div className="rounded-2xl border border-chaos-amber/30 bg-gradient-to-r from-chaos-amber/10 via-chaos-amber/5 to-transparent p-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-chaos-amber/20 flex items-center justify-center flex-shrink-0">
+                      <Zap className="w-6 h-6 text-chaos-amber" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-serif font-bold text-foreground mb-1">
+                        Timeline Instability
+                      </h3>
+                      <p className="text-muted-foreground">
+                        This timeline shows signs of instability. Play the Stabilize game to reduce chaos and secure this alternate history.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <Link href={`/simulation/${simulationId}/stabilize`}>
+                    <Button 
+                      size="lg" 
+                      className="h-12 px-6 gap-2 bg-chaos-amber hover:bg-chaos-amber/90 text-black"
+                    >
+                      <Gamepad2 className="w-5 h-5" />
+                      Play Stabilize
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
