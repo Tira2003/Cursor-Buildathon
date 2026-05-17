@@ -8,6 +8,7 @@ import { isDemoMode } from "../lib/demo";
 import { pickDemoPhase1 } from "../lib/demoFixtures";
 import { generateJson } from "../lib/gemini";
 import { isLlmRateLimitError } from "../lib/llmErrors";
+import { recordGroqUsage } from "../lib/recordApiUsage";
 import { normalizeBranchChoices } from "../lib/normalizeChoices";
 import { normalizeTimelineEvents } from "../lib/normalizeTimeline";
 
@@ -53,7 +54,11 @@ export const run = action({
     }
 
     try {
-      const data = await generateJson<{
+      const userId = await ctx.runQuery(
+        internal.simulationsInternal.getSimulationOwnerUserId,
+        { simulationId: args.simulationId },
+      );
+      const result = await generateJson<{
         chaosScore: number;
         immediateRipple: typeof demoPhase1.immediateRipple;
         generationalShift: typeof demoPhase1.generationalShift;
@@ -66,6 +71,17 @@ Real outcome: ${context.realOutcome}
 What if: ${context.whatIfPrompt}`,
       );
 
+      if (userId) {
+        await recordGroqUsage(ctx, {
+          userId,
+          feature: "phase1",
+          model: result.model,
+          usage: result.usage,
+          simulationId: args.simulationId,
+        });
+      }
+
+      const data = result.data;
       await ctx.runMutation(internal.simulationsInternal.patchPhase1, {
         simulationId: args.simulationId,
         chaosScore: Math.min(100, Math.max(0, data.chaosScore)),

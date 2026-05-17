@@ -11,6 +11,8 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
+  apiUsageFeature,
+  apiUsageProvider,
   branchChoice,
   museumScanStatus,
   simulationSource,
@@ -150,4 +152,30 @@ export default defineSchema({
     fileUrl: v.string(),
     createdAt: v.number(),
   }).index("by_simulation", ["simulationId"]),
+
+  apiUsageEvents: defineTable({
+    userId: v.id("users"),
+    provider: apiUsageProvider,
+    feature: apiUsageFeature,
+    model: v.optional(v.string()),
+    inputTokens: v.optional(v.number()),
+    outputTokens: v.optional(v.number()),
+    serperRequests: v.optional(v.number()),
+    costUsd: v.number(),
+    simulationId: v.optional(v.id("simulations")),
+    museumScanId: v.optional(v.id("museumScans")),
+    createdAt: v.number(),
+  }).index("by_user_created", ["userId", "createdAt"]),
+
+  userUsageTotals: defineTable({
+    userId: v.id("users"),
+    groqInputTokens: v.number(),
+    groqOutputTokens: v.number(),
+    groqCallCount: v.number(),
+    groqCostUsd: v.number(),
+    serperRequests: v.number(),
+    serperCostUsd: v.number(),
+    totalCostUsd: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 });

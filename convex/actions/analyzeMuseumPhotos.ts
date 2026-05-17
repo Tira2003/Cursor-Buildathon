@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import { demoMuseum, isDemoMode } from "../lib/demo";
 import { generateJsonWithImages } from "../lib/gemini";
 import { isLlmRateLimitError } from "../lib/llmErrors";
+import { recordGroqUsage } from "../lib/recordApiUsage";
 
 const visionResult = v.object({
   artifactName: v.string(),
@@ -99,7 +100,10 @@ export const run = action({
       : `No separate label photo was provided. Analyze the artifact image only and infer name, type, era, any visible inscription, and historical context from the artifact itself. Return JSON: { artifactName, artifactType, labelText, estimatedEra, historicalContext, confidence 0-1 }`;
 
     try {
-      const data = await generateJsonWithImages<{
+      const userId = await ctx.runQuery(internal.museumScansInternal.getScanOwnerUserId, {
+        scanId: args.scanId,
+      });
+      const result = await generateJsonWithImages<{
         artifactName: string;
         artifactType: string;
         labelText: string;
@@ -108,6 +112,17 @@ export const run = action({
         confidence: number;
       }>(prompt, imageParts);
 
+      if (userId) {
+        await recordGroqUsage(ctx, {
+          userId,
+          feature: "museum_analyze",
+          model: result.model,
+          usage: result.usage,
+          museumScanId: args.scanId,
+        });
+      }
+
+      const data = result.data;
       await ctx.runMutation(internal.museumScansInternal.patchAnalyzed, {
         scanId: args.scanId,
         extractedArtifactName: data.artifactName,

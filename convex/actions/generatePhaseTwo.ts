@@ -8,6 +8,7 @@ import { isDemoMode } from "../lib/demo";
 import { pickDemoPhase2 } from "../lib/demoFixtures";
 import { generateJson } from "../lib/gemini";
 import { isLlmRateLimitError } from "../lib/llmErrors";
+import { recordGroqUsage } from "../lib/recordApiUsage";
 import { normalizeTimelineEvents } from "../lib/normalizeTimeline";
 
 const phase2Schema = `Return JSON: {
@@ -49,7 +50,11 @@ export const run = action({
     }
 
     try {
-      const data = await generateJson<typeof demoPhase2>(
+      const userId = await ctx.runQuery(
+        internal.simulationsInternal.getSimulationOwnerUserId,
+        { simulationId: args.simulationId },
+      );
+      const result = await generateJson<typeof demoPhase2>(
         `You are an alternate-history engine. ${phase2Schema}. relicPrompt describes a museum artifact photo.`,
         `Incident: ${context.incidentTitle}
 What if: ${context.whatIfPrompt}
@@ -57,6 +62,17 @@ Chosen branch: ${context.selectedBranchTitle ?? context.selectedBranchId}
 Prior chaos: ${context.chaosScore ?? "unknown"}`,
       );
 
+      if (userId) {
+        await recordGroqUsage(ctx, {
+          userId,
+          feature: "phase2",
+          model: result.model,
+          usage: result.usage,
+          simulationId: args.simulationId,
+        });
+      }
+
+      const data = result.data;
       await ctx.runMutation(internal.simulationsInternal.patchPhase2, {
         simulationId: args.simulationId,
         globalConsequence: normalizeTimelineEvents(data.globalConsequence),

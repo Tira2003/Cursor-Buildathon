@@ -3,6 +3,15 @@ import { v } from "convex/values";
 import { branchChoice, timelineEvent } from "./validators";
 import { CHAOS_CHAOTIC_THRESHOLD } from "./lib/constants";
 
+export const getSimulationOwnerUserId = internalQuery({
+  args: { simulationId: v.id("simulations") },
+  returns: v.union(v.id("users"), v.null()),
+  handler: async (ctx, args) => {
+    const sim = await ctx.db.get(args.simulationId);
+    return sim?.userId ?? null;
+  },
+});
+
 export const getRelicPrompt = internalQuery({
   args: { simulationId: v.id("simulations") },
   returns: v.union(v.string(), v.null()),

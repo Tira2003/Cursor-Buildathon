@@ -144,10 +144,13 @@ export function mapSimulationToUi(
   const ripples = [...immediate, ...generational].map(formatRipple);
 
   const fallbackImage =
-    sim.relicImageUrl ?? sim.museumArtifactImageUrl ?? undefined;
+    sim.relicImageUrl ??
+    sim.museumArtifactImageUrl ??
+    incident?.image ??
+    undefined;
 
   const storyCards: StoryCard[] =
-    sim.source === "museum" && sim.events.length > 0
+    sim.events.length > 0
       ? sim.events.map((ev, i) =>
           eventToStoryCard(
             ev,
@@ -160,13 +163,34 @@ export function mapSimulationToUi(
         )
       : [
           ...immediate.map((ev, i) =>
-            eventToStoryCard(ev, `imm-${i}`, true, ev.imageUrl ?? fallbackImage),
+            eventToStoryCard(
+              ev,
+              `imm-${i}`,
+              true,
+              ev.imageUrl ?? fallbackImage,
+              sim._id,
+              i,
+            ),
           ),
           ...generational.map((ev, i) =>
-            eventToStoryCard(ev, `gen-${i}`, true, ev.imageUrl ?? fallbackImage),
+            eventToStoryCard(
+              ev,
+              `gen-${i}`,
+              true,
+              ev.imageUrl ?? fallbackImage,
+              sim._id,
+              immediate.length + i,
+            ),
           ),
           ...(sim.globalConsequence ?? []).map((ev, i) =>
-            eventToStoryCard(ev, `glob-${i}`, true, ev.imageUrl ?? fallbackImage),
+            eventToStoryCard(
+              ev,
+              `glob-${i}`,
+              true,
+              ev.imageUrl ?? fallbackImage,
+              sim._id,
+              immediate.length + generational.length + i,
+            ),
           ),
         ];
 

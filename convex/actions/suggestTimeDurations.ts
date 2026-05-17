@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import { demoMuseum, isDemoMode } from "../lib/demo";
 import { generateJson } from "../lib/gemini";
 import { isLlmRateLimitError } from "../lib/llmErrors";
+import { recordGroqUsage } from "../lib/recordApiUsage";
 
 const durationOptionsResult = v.object({
   options: v.array(
@@ -46,11 +47,25 @@ export const run = action({
     }
 
     try {
-      const data = await generateJson<DurationOptions>(
+      const userId = await ctx.runQuery(internal.museumScansInternal.getScanOwnerUserId, {
+        scanId: args.scanId,
+      });
+      const result = await generateJson<DurationOptions>(
         `You suggest alternate-history simulation time spans for a museum artifact. Return JSON only: { "options": [ { "id": "dur_1", "label": "25 years", "spanYears": 25, "description": "..." }, ... ] }. Provide exactly 4 options with spanYears between 25 and 300, labels like "25 years", descriptions tied to this specific artifact.`,
         `Artifact: ${analysis.extractedArtifactName}\nEra: ${analysis.extractedEra ?? "unknown"}\nDetails: ${analysis.extractedLabelText}`,
       );
 
+      if (userId) {
+        await recordGroqUsage(ctx, {
+          userId,
+          feature: "museum_durations",
+          model: result.model,
+          usage: result.usage,
+          museumScanId: args.scanId,
+        });
+      }
+
+      const data = result.data;
       if (!data.options?.length) {
         throw new Error("No duration options returned from model");
       }

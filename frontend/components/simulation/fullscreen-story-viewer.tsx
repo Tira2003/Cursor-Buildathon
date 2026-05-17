@@ -2,7 +2,8 @@
 
 import { useAction } from 'convex/react'
 import { useState, useEffect, useRef } from 'react'
-import { ChevronLeft, ChevronRight, ChevronDown, Sparkles, Share2, Bookmark, Shuffle } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronLeft, ChevronRight, ChevronDown, Sparkles, Share2, Bookmark, Shuffle, Home } from 'lucide-react'
 import { api } from '@/convex/_generated/api'
 import type { Id } from '@/convex/_generated/dataModel'
 import { HistoricalImage } from '@/components/ui/historical-image'
@@ -28,10 +29,12 @@ export function FullscreenStoryViewer({
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isHovering, setIsHovering] = useState(false)
   const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [fetchedImages, setFetchedImages] = useState<Record<string, string>>({})
   const containerRef = useRef<HTMLDivElement>(null)
   const fetchEventImage = useAction(api.actions.fetchSimulationEventImages.fetchOne)
 
   const currentCard = cards[currentIndex]
+  const currentImage = fetchedImages[currentCard.id] ?? currentCard.image
 
   async function retryEventImage(card: StoryCard): Promise<string | undefined> {
     if (card.simulationId === undefined || card.eventIndex === undefined) {
@@ -42,8 +45,34 @@ export function FullscreenStoryViewer({
       eventIndex: card.eventIndex,
       force: true,
     })
-    return result.ok ? result.imageUrl : undefined
+    if (result.ok && result.imageUrl) {
+      setFetchedImages((prev) => ({ ...prev, [card.id]: result.imageUrl! }))
+      return result.imageUrl
+    }
+    return undefined
   }
+
+  useEffect(() => {
+    const card = cards[currentIndex]
+    if (card.image) return
+    if (card.simulationId === undefined || card.eventIndex === undefined) return
+
+    let cancelled = false
+    void (async () => {
+      const result = await fetchEventImage({
+        simulationId: card.simulationId as Id<'simulations'>,
+        eventIndex: card.eventIndex!,
+        force: false,
+      })
+      if (cancelled || !result.ok || !result.imageUrl) return
+      setFetchedImages((prev) => ({ ...prev, [card.id]: result.imageUrl! }))
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentIndex, cards, fetchEventImage])
+
   const showDescription = isHovering
 
   // Handle swipe gestures
@@ -107,7 +136,7 @@ export function FullscreenStoryViewer({
       {/* Fullscreen Image - Show directly without animation */}
       <div className="absolute inset-0">
         <HistoricalImage
-          src={currentCard.image}
+          src={currentImage}
           alt={currentCard.title}
           className="absolute inset-0"
           imageClassName="object-cover transition-opacity duration-500"
@@ -130,6 +159,13 @@ export function FullscreenStoryViewer({
       <div className="absolute top-0 left-0 right-0 z-20 p-6 md:p-8">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 mb-3 px-4 py-2 rounded-full bg-card/60 backdrop-blur-md border border-border/50 text-foreground hover:bg-card/80 transition-all hover:scale-105 active:scale-95"
+            >
+              <Home className="w-4 h-4" />
+              <span className="text-sm font-medium">Home</span>
+            </Link>
             <p className="text-sm text-muted-foreground mb-2">Alternate Timeline</p>
             <h1 className="font-serif text-lg md:text-xl text-foreground/90 max-w-2xl">
               &ldquo;{whatIf}&rdquo;

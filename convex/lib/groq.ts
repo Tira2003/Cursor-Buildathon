@@ -1,8 +1,10 @@
 "use node";
 
+import { GROQ_TEXT_MODEL, GROQ_VISION_MODEL } from "./billingRates";
+
 const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
-const TEXT_MODEL = "llama-3.3-70b-versatile";
-const VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+
+export { GROQ_TEXT_MODEL, GROQ_VISION_MODEL };
 
 type ContentPart =
   | { type: "text"; text: string }
@@ -11,6 +13,23 @@ type ContentPart =
 type ChatMessage = {
   role: "system" | "user";
   content: string | ContentPart[];
+};
+
+export type GroqTokenUsage = {
+  prompt_tokens: number;
+  completion_tokens: number;
+};
+
+export type GroqChatResult = {
+  content: string;
+  usage: GroqTokenUsage;
+  model: string;
+};
+
+export type GenerateJsonResult<T> = {
+  data: T;
+  usage: GroqTokenUsage;
+  model: string;
 };
 
 function getApiKey(): string {
@@ -33,7 +52,7 @@ export type GroqApiErrorBody = {
 export async function groqChat(
   messages: ChatMessage[],
   model: string,
-): Promise<string> {
+): Promise<GroqChatResult> {
   const res = await fetch(GROQ_CHAT_URL, {
     method: "POST",
     headers: {
@@ -67,12 +86,21 @@ export async function groqChat(
 
   const data = JSON.parse(bodyText) as {
     choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
     throw new Error("Groq returned empty completion content");
   }
-  return content;
+
+  return {
+    content,
+    usage: {
+      prompt_tokens: data.usage?.prompt_tokens ?? 0,
+      completion_tokens: data.usage?.completion_tokens ?? 0,
+    },
+    model,
+  };
 }
 
 async function imageUrlToDataPart(imageUrl: string): Promise<ContentPart> {
@@ -103,21 +131,25 @@ async function imageUrlToDataPart(imageUrl: string): Promise<ContentPart> {
 export async function generateJson<T>(
   system: string,
   user: string,
-): Promise<T> {
-  const text = await groqChat(
+): Promise<GenerateJsonResult<T>> {
+  const result = await groqChat(
     [
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    TEXT_MODEL,
+    GROQ_TEXT_MODEL,
   );
-  return JSON.parse(text) as T;
+  return {
+    data: JSON.parse(result.content) as T,
+    usage: result.usage,
+    model: result.model,
+  };
 }
 
 export async function generateJsonWithImages<T>(
   system: string,
   parts: Array<{ text?: string; imageUrl?: string }>,
-): Promise<T> {
+): Promise<GenerateJsonResult<T>> {
   const content: ContentPart[] = [];
   for (const p of parts) {
     if (p.text) {
@@ -127,14 +159,18 @@ export async function generateJsonWithImages<T>(
     }
   }
 
-  const text = await groqChat(
+  const result = await groqChat(
     [
       { role: "system", content: system },
       { role: "user", content },
     ],
-    VISION_MODEL,
+    GROQ_VISION_MODEL,
   );
-  return JSON.parse(text) as T;
+  return {
+    data: JSON.parse(result.content) as T,
+    usage: result.usage,
+    model: result.model,
+  };
 }
 
 /** Groq does not offer image generation; museum relic step skips gracefully. */

@@ -7,6 +7,7 @@ import { demoStabilizeWin, isDemoMode } from "../lib/demo";
 import { CHAOS_WIN_THRESHOLD } from "../lib/constants";
 import { generateJson } from "../lib/gemini";
 import { normalizeCorrectiveChoices } from "../lib/normalizeChoices";
+import { recordGroqUsage } from "../lib/recordApiUsage";
 import type { TimelineEvent } from "../types/contracts";
 
 export const startChallenge = action({
@@ -41,13 +42,28 @@ export const startChallenge = action({
       throw new Error("Simulation has no timeline events to stabilize");
     }
 
-    const data = await generateJson<{
+    const userId = await ctx.runQuery(
+      internal.simulationsInternal.getSimulationOwnerUserId,
+      { simulationId: args.simulationId },
+    );
+    const result = await generateJson<{
       correctiveChoices: Array<{ id?: unknown; title?: unknown; description?: unknown }>;
     }>(
       `Return JSON with exactly 5 correctiveChoices: [{ "id": "fix_1", "title": "...", "description": "..." }, ...]. Each id must be a string like "fix_1", never a number.`,
       `Chaotic timeline chaos ${sim.chaosScore}. Events: ${sim.events.map((e: { title: string }) => e.title).join("; ")}`,
     );
 
+    if (userId) {
+      await recordGroqUsage(ctx, {
+        userId,
+        feature: "stabilize",
+        model: result.model,
+        usage: result.usage,
+        simulationId: args.simulationId,
+      });
+    }
+
+    const data = result.data;
     if (!data.correctiveChoices?.length) {
       throw new Error("No corrective choices returned from model");
     }
@@ -94,11 +110,24 @@ export const submitFixes = action({
       const selected = args.correctiveChoices.filter((c) =>
         args.selectedChoiceIds.includes(c.id),
       );
-      const data = await generateJson<{ resultingChaosScore: number }>(
+      const userId = await ctx.runQuery(
+        internal.simulationsInternal.getSimulationOwnerUserId,
+        { simulationId: args.simulationId },
+      );
+      const result = await generateJson<{ resultingChaosScore: number }>(
         `Given chaotic timeline and fixes, return JSON { resultingChaosScore: number 0-100 }. Good fixes lower score.`,
         `Current chaos: ${sim.chaosScore}. Fixes applied: ${selected.map((c) => c.title).join(", ")}`,
       );
-      const score = Number(data.resultingChaosScore);
+      if (userId) {
+        await recordGroqUsage(ctx, {
+          userId,
+          feature: "stabilize",
+          model: result.model,
+          usage: result.usage,
+          simulationId: args.simulationId,
+        });
+      }
+      const score = Number(result.data.resultingChaosScore);
       resultingChaosScore = Number.isFinite(score)
         ? Math.min(100, Math.max(0, score))
         : Math.max(0, (sim.chaosScore ?? 50) - selected.length * 12);

@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import { demoMuseum, isDemoMode } from "../lib/demo";
 import { generateJson } from "../lib/gemini";
 import { isLlmRateLimitError } from "../lib/llmErrors";
+import { recordGroqUsage } from "../lib/recordApiUsage";
 import { normalizeTimelineEvents } from "../lib/normalizeTimeline";
 import type { TimelineEvent } from "../types/contracts";
 
@@ -59,7 +60,11 @@ export const run = action({
       "";
 
     try {
-      const data = await generateJson<{
+      const userId = await ctx.runQuery(
+        internal.simulationsInternal.getSimulationOwnerUserId,
+        { simulationId: args.simulationId },
+      );
+      const result = await generateJson<{
         chaosScore: number;
         events: typeof demoMuseum.timeline.events;
         lostToHistory: string[];
@@ -81,24 +86,18 @@ export const run = action({
           .join("\n"),
       );
 
-      const rawImpactLevels = data.events.map((e) => e.impactLevel);
-      const events = normalizeTimelineEvents(data.events);
-      // #region agent log
-      const coerced = rawImpactLevels.filter(
-        (raw, i) => raw !== events[i]?.impactLevel,
-      ).length;
-      if (coerced > 0) {
-        console.log(
-          JSON.stringify({
-            sessionId: "d3a7e1",
-            hypothesisId: "H1",
-            location: "generateTimelineFromDuration.ts",
-            message: "impactLevel_coerced",
-            data: { coerced, sampleRaw: rawImpactLevels.slice(0, 3) },
-          }),
-        );
+      if (userId) {
+        await recordGroqUsage(ctx, {
+          userId,
+          feature: "timeline_generate",
+          model: result.model,
+          usage: result.usage,
+          simulationId: args.simulationId,
+        });
       }
-      // #endregion
+
+      const data = result.data;
+      const events = normalizeTimelineEvents(data.events);
 
       const whatIfPrompt =
         sim.whatIfPrompt ??

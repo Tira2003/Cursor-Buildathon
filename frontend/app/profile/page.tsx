@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { ArrowLeft, Trophy, Flame, GitBranch, LogOut } from 'lucide-react'
+import { ArrowLeft, Trophy, Flame, GitBranch, LogOut, Receipt } from 'lucide-react'
 import { useMutation } from 'convex/react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
@@ -158,13 +158,19 @@ export default function ProfilePage() {
             ))}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/my-timelines" className="flex-1">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+            <Link href="/my-timelines" className="flex-1 min-w-[140px]">
               <Button variant="outline" className="w-full h-12 border-border">
                 My simulations
               </Button>
             </Link>
-            <Link href="/timelines" className="flex-1">
+            <Link href="/account/usage" className="flex-1 min-w-[140px]">
+              <Button variant="outline" className="w-full h-12 border-border gap-2">
+                <Receipt className="w-4 h-4" />
+                Usage &amp; billing
+              </Button>
+            </Link>
+            <Link href="/timelines" className="flex-1 min-w-[140px]">
               <Button className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground">
                 Create timeline
               </Button>

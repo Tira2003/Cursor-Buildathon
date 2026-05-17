@@ -14,6 +14,9 @@ export const getSimulationEventForImageFetch = internalQuery({
       title: v.string(),
       artifactName: v.optional(v.string()),
       era: v.optional(v.string()),
+      timelineSlug: v.optional(v.string()),
+      location: v.optional(v.string()),
+      historicalContext: v.optional(v.string()),
       hasImage: v.boolean(),
     }),
     v.null(),
@@ -26,10 +29,27 @@ export const getSimulationEventForImageFetch = internalQuery({
 
     let artifactName: string | undefined;
     let era: string | undefined;
+    let timelineSlug: string | undefined;
+    let location: string | undefined;
+    let historicalContext: string | undefined;
+
+    if (sim.originalTimelineId) {
+      const timeline = await ctx.db.get(sim.originalTimelineId);
+      timelineSlug = timeline?.slug;
+      era = timeline?.title;
+    }
+
     if (sim.museumScanId) {
       const scan = await ctx.db.get(sim.museumScanId);
       artifactName = scan?.extractedArtifactName;
-      era = scan?.extractedEra;
+      era = era ?? scan?.extractedEra;
+      historicalContext = scan?.historicalContext;
+    }
+
+    if (sim.changedIncidentId) {
+      const incident = await ctx.db.get(sim.changedIncidentId);
+      artifactName = artifactName ?? incident?.title;
+      location = incident?.location;
     }
 
     return {
@@ -39,6 +59,9 @@ export const getSimulationEventForImageFetch = internalQuery({
       title: event.title,
       artifactName,
       era,
+      timelineSlug,
+      location,
+      historicalContext,
       hasImage: Boolean(event.imageStorageId),
     };
   },

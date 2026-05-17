@@ -45,3 +45,16 @@ export const museumScanStatus = v.union(
   v.literal("analyzed"),
   v.literal("confirmed"),
 );
+
+export const apiUsageProvider = v.union(v.literal("groq"), v.literal("serper"));
+
+export const apiUsageFeature = v.union(
+  v.literal("museum_analyze"),
+  v.literal("museum_durations"),
+  v.literal("timeline_generate"),
+  v.literal("phase1"),
+  v.literal("phase2"),
+  v.literal("stabilize"),
+  v.literal("incident_image"),
+  v.literal("simulation_event_image"),
+);

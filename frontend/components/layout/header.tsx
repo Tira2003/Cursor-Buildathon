@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { UserCircle2, LogOut } from 'lucide-react'
+import { UserCircle2, LogOut, Receipt } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/use-auth'
@@ -12,6 +12,7 @@ const navLinks = [
   { href: '/museum', label: 'Museum' },
   { href: '/community', label: 'Community' },
   { href: '/my-timelines', label: 'My Timelines' },
+  { href: '/account/usage', label: 'Usage & Billing' },
 ]
 
 export function Header() {
@@ -57,7 +58,8 @@ export function Header() {
                 (link.href === '/timelines' && pathname.startsWith('/timelines')) ||
                 (link.href === '/museum' && pathname.startsWith('/museum')) ||
                 (link.href === '/my-timelines' && pathname.startsWith('/my-timelines')) ||
-                (link.href === '/community' && pathname.startsWith('/community'))
+                (link.href === '/community' && pathname.startsWith('/community')) ||
+                (link.href === '/account/usage' && pathname.startsWith('/account/usage'))
 
               return (
                 <Link
@@ -110,6 +112,14 @@ export function Header() {
                       className="flex items-center gap-2 px-4 py-3 text-sm text-white/80 hover:text-white hover:bg-white/10 transition-colors border-t border-white/10"
                     >
                       My Timelines
+                    </Link>
+                    <Link
+                      href="/account/usage"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-3 text-sm text-white/80 hover:text-white hover:bg-white/10 transition-colors border-t border-white/10"
+                    >
+                      <Receipt className="w-4 h-4" />
+                      Usage &amp; Billing
                     </Link>
                     <button
                       onClick={handleLogout}

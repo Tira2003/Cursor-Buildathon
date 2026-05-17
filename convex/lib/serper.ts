@@ -8,10 +8,15 @@ export type SerperImageResult = {
   link?: string;
 };
 
+export type SerperSearchResult = {
+  results: SerperImageResult[];
+  requestCount: number;
+};
+
 export async function searchImages(
   query: string,
   options?: { num?: number },
-): Promise<SerperImageResult[]> {
+): Promise<SerperSearchResult> {
   const apiKey = process.env.SERPER_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -44,7 +49,7 @@ export async function searchImages(
     }>;
   };
 
-  return (data.images ?? [])
+  const results = (data.images ?? [])
     .filter((img): img is { title?: string; imageUrl: string; link?: string } =>
       Boolean(img.imageUrl),
     )
@@ -53,6 +58,8 @@ export async function searchImages(
       imageUrl: img.imageUrl,
       link: img.link,
     }));
+
+  return { results, requestCount: 1 };
 }
 
 export async function downloadImage(url: string): Promise<Blob | null> {

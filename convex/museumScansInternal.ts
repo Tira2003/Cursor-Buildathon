@@ -1,6 +1,15 @@
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
+export const getScanOwnerUserId = internalQuery({
+  args: { scanId: v.id("museumScans") },
+  returns: v.union(v.id("users"), v.null()),
+  handler: async (ctx, args) => {
+    const scan = await ctx.db.get(args.scanId);
+    return scan?.userId ?? null;
+  },
+});
+
 export const getScanUrls = internalQuery({
   args: { scanId: v.id("museumScans") },
   returns: v.union(

@@ -7,7 +7,8 @@ import { api } from '@/convex/_generated/api'
 import { Id } from '@/convex/_generated/dataModel'
 import Link from 'next/link'
 import { 
-  ArrowLeft, 
+  ArrowLeft,
+  Home,
   Share2, 
   Bookmark, 
   AlertTriangle, 
@@ -94,15 +95,15 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
   ])
 
   useEffect(() => {
-    if (convexSim?.source !== 'museum' || convexSim.events.length === 0) return
+    if (!convexSim || convexSim.events.length === 0) return
     const needsSerper = convexSim.events.some(
-      (ev, i) => i > 0 && !ev.imageUrl && !ev.imageStorageId,
+      (ev) => !ev.imageUrl && !ev.imageStorageId,
     )
     if (!needsSerper) return
     void fetchSimulationImages({
       simulationId: simulationId as Id<'simulations'>,
     })
-  }, [convexSim?.source, convexSim?.events, simulationId, fetchSimulationImages])
+  }, [convexSim, simulationId, fetchSimulationImages])
 
   const handleBranchSelect = async (branchId: string) => {
     setPhase2Loading(true)
@@ -188,14 +189,23 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
         <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
           <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between gap-4">
-              {/* Back button */}
-              <Link 
-                href="/timelines"
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Timelines</span>
-              </Link>
+              {/* Back navigation */}
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Home className="w-4 h-4" />
+                  <span className="hidden sm:inline">Home</span>
+                </Link>
+                <Link
+                  href="/timelines"
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Timelines</span>
+                </Link>
+              </div>
 
               {/* Quick Navigation Buttons */}
               <div className="flex items-center gap-2">
