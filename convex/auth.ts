@@ -10,11 +10,21 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Google({
       profile(profile) {
+        const sub = typeof profile.sub === "string" ? profile.sub : "";
         const email = profile.email?.trim();
         if (!email) {
           throw new Error("Google account did not provide an email address");
         }
-        const doc: { email: string; name?: string; image?: string } = {
+        if (!sub) {
+          throw new Error("Google account did not provide a stable id (sub)");
+        }
+        const doc: {
+          id: string;
+          email: string;
+          name?: string;
+          image?: string;
+        } = {
+          id: sub,
           email: normalizeEmail(email),
         };
         const name = profile.name?.trim();

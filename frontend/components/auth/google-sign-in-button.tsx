@@ -121,10 +121,20 @@ export function GoogleSignInUnavailableNote() {
       {setup?.redirectUri ? (
         <>
           {" "}
-          Redirect URI:{" "}
+          Add this exact redirect URI in Google Cloud Console:{" "}
           <code className="block mt-2 break-all text-foreground/70">
             {setup.redirectUri}
           </code>
+          {setup.siteUrl ? (
+            <>
+              {" "}
+              <span className="block mt-2">
+                Convex <code className="text-foreground/70">SITE_URL</code>:{" "}
+                <code className="break-all text-foreground/70">{setup.siteUrl}</code>
+                {" "}(must match your app URL, e.g. http://localhost:3001/)
+              </span>
+            </>
+          ) : null}
         </>
       ) : null}
     </p>

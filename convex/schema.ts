@@ -116,7 +116,9 @@ export default defineSchema({
     thumbnailUrl: v.optional(v.string()),
     chaosScore: v.number(),
     createdAt: v.number(),
-  }).index("by_created", ["createdAt"]),
+  })
+    .index("by_created", ["createdAt"])
+    .index("by_simulation", ["simulationId"]),
 
   remixes: defineTable({
     originalSimulationId: v.id("simulations"),

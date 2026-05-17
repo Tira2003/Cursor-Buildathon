@@ -4,26 +4,32 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { ArrowLeft, Trophy, Flame, GitBranch, LogOut, Receipt } from 'lucide-react'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
-import { mockUserProfile } from '@/lib/mock-data'
 import { useAuth } from '@/lib/use-auth'
 import { api } from '@/convex/_generated/api'
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { logout, displayName, email } = useAuth()
+  const { logout, displayName, email, loggedIn } = useAuth()
   const updateDisplayName = useMutation(api.users.updateDisplayName)
+  const playerStats = useQuery(
+    api.users.getPlayerStats,
+    loggedIn ? {} : 'skip',
+  )
   const [nameDraft, setNameDraft] = useState('')
   const [nameError, setNameError] = useState('')
   const [savingName, setSavingName] = useState(false)
-  const profile = mockUserProfile
+
+  const stabilizeWins = playerStats?.stabilizeWins ?? 0
+  const chaosPublished = playerStats?.chaosPublished ?? 0
+  const totalSimulations = playerStats?.totalSimulations ?? 0
 
   const stats = [
     {
       icon: Trophy,
-      value: profile.stabilizeWins,
+      value: stabilizeWins,
       label: 'Stabilize wins',
       sub: 'Chaos below 40',
       iconClass: 'text-chaos-green',
@@ -31,7 +37,7 @@ export default function ProfilePage() {
     },
     {
       icon: Flame,
-      value: profile.chaosPublished,
+      value: chaosPublished,
       label: 'Chaos published',
       sub: 'High-chaos timelines',
       iconClass: 'text-chaos-amber',
@@ -39,7 +45,7 @@ export default function ProfilePage() {
     },
     {
       icon: GitBranch,
-      value: profile.simulationsCount,
+      value: totalSimulations,
       label: 'Simulations',
       sub: 'Total created',
       iconClass: 'text-primary',

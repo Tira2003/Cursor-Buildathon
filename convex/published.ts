@@ -16,6 +16,11 @@ export const publish = mutation({
     if (!sim || sim.userId !== userId) throw new Error("Not found");
     if (sim.chaosScore === undefined) throw new Error("Simulation not ready to publish");
 
+    const title = args.title.trim();
+    const description = args.description.trim();
+    if (!title) throw new Error("Title is required");
+    if (!description) throw new Error("Description is required");
+
     const now = Date.now();
     const isChaotic = sim.chaosScore >= CHAOS_CHAOTIC_THRESHOLD;
 
@@ -26,11 +31,25 @@ export const publish = mutation({
       updatedAt: now,
     });
 
+    const existing = await ctx.db
+      .query("publishedTimelines")
+      .withIndex("by_simulation", (q) => q.eq("simulationId", args.simulationId))
+      .unique();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        title,
+        description,
+        chaosScore: sim.chaosScore,
+      });
+      return existing._id;
+    }
+
     const publishedId = await ctx.db.insert("publishedTimelines", {
       simulationId: args.simulationId,
       authorId: userId,
-      title: args.title,
-      description: args.description,
+      title,
+      description,
       chaosScore: sim.chaosScore,
       createdAt: now,
     });
@@ -47,6 +66,32 @@ export const publish = mutation({
     }
 
     return publishedId;
+  },
+});
+
+export const getForSimulation = query({
+  args: { simulationId: v.id("simulations") },
+  returns: v.union(
+    v.object({
+      _id: v.id("publishedTimelines"),
+      title: v.string(),
+      description: v.string(),
+      createdAt: v.number(),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("publishedTimelines")
+      .withIndex("by_simulation", (q) => q.eq("simulationId", args.simulationId))
+      .unique();
+    if (!existing) return null;
+    return {
+      _id: existing._id,
+      title: existing.title,
+      description: existing.description,
+      createdAt: existing.createdAt,
+    };
   },
 });
 

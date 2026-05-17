@@ -7,6 +7,15 @@ import { Camera, BookOpen, ChevronDown } from 'lucide-react'
 const HERO_VIDEO = '/Landing.mp4'
 const HERO_POSTER = '/images/hero/alternate-timelines.jpg'
 
+const heroBtnClass =
+  'group relative inline-flex h-[50px] items-center gap-2 overflow-hidden border-2 border-primary bg-transparent px-7 text-sm font-semibold tracking-wide text-white no-underline transition-[color,box-shadow] duration-300 hover:text-primary-foreground hover:shadow-[0_0_28px_oklch(0.72_0.14_85/0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 active:scale-[0.97]'
+
+const heroBtnFillClass =
+  'pointer-events-none absolute inset-0 z-0 origin-bottom scale-y-0 bg-primary transition-transform duration-500 ease-[cubic-bezier(0.33,1,0.45,1)] group-hover:scale-y-100 group-focus-visible:scale-y-100'
+
+const heroBtnWaveClass =
+  'pointer-events-none absolute -left-[20%] bottom-0 z-[1] h-[200%] w-[140%] origin-bottom translate-y-full rounded-[45%_45%_0_0] bg-primary transition-transform duration-[600ms] ease-[cubic-bezier(0.33,1,0.45,1)] group-hover:translate-y-[8%] group-focus-visible:translate-y-[8%]'
+
 export function Hero() {
   const [mounted, setMounted] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -65,13 +74,21 @@ export function Hero() {
         </p>
 
         <div className={`flex flex-col sm:flex-row items-center gap-6 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          <Link href="/museum" className="hero-btn">
-            <Camera className="w-4 h-4 shrink-0" style={{ position: 'relative', zIndex: 3 }} />
-            <span>SCAN ARTIFACT</span>
+          <Link href="/museum" className={heroBtnClass}>
+            <span className={heroBtnFillClass} aria-hidden />
+            <span className={heroBtnWaveClass} aria-hidden />
+            <Camera className="relative z-10 w-4 h-4 shrink-0 transition-colors duration-300 group-hover:text-primary-foreground" />
+            <span className="relative z-10 transition-colors duration-300 group-hover:text-primary-foreground">
+              SCAN ARTIFACT
+            </span>
           </Link>
-          <Link href="/timelines" className="hero-btn">
-            <BookOpen className="w-4 h-4 shrink-0" style={{ position: 'relative', zIndex: 3 }} />
-            <span>BROWSE TIMELINES</span>
+          <Link href="/timelines" className={heroBtnClass}>
+            <span className={heroBtnFillClass} aria-hidden />
+            <span className={heroBtnWaveClass} aria-hidden />
+            <BookOpen className="relative z-10 w-4 h-4 shrink-0 transition-colors duration-300 group-hover:text-primary-foreground" />
+            <span className="relative z-10 transition-colors duration-300 group-hover:text-primary-foreground">
+              BROWSE TIMELINES
+            </span>
           </Link>
         </div>
       </div>

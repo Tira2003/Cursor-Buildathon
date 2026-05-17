@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { ConvexAuthNextjsServerProvider } from '@convex-dev/auth/nextjs/server'
 import { ConvexClientProvider } from './ConvexClientProvider'
 import './globals.css'
 
@@ -54,7 +55,7 @@ export const viewport: Viewport = {
 
 export const dynamic = 'force-dynamic'
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
@@ -62,9 +63,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable} bg-background`}>
       <body className="font-sans antialiased min-h-screen">
-        <ConvexClientProvider>
-          {children}
-        </ConvexClientProvider>
+        <ConvexAuthNextjsServerProvider>
+          <ConvexClientProvider>
+            {children}
+          </ConvexClientProvider>
+        </ConvexAuthNextjsServerProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

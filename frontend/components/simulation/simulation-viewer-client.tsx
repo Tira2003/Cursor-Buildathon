@@ -17,7 +17,8 @@ import {
   Waves, 
   Zap,
   ChevronRight,
-  Shuffle
+  Shuffle,
+  Globe2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ChaosMeter } from '@/components/simulation/chaos-meter'
@@ -27,6 +28,7 @@ import { RelicImage } from '@/components/simulation/relic-image'
 import { FullscreenStoryViewer } from '@/components/simulation/fullscreen-story-viewer'
 import { AuroraLoadingScreen } from '@/components/simulation/aurora-loading-screen'
 import { BranchChoice } from '@/components/simulation/branch-choice'
+import { PublishDialog } from '@/components/simulation/publish-dialog'
 import { mapConvexStatus, mapIncident, mapSimulationToUi } from '@/lib/convex-ui'
 import { useDemoMode } from '@/lib/useDemoMode'
 import { useAuth } from '@/lib/use-auth'
@@ -73,7 +75,22 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
   const [phase2Loading, setPhase2Loading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
+  const [publishOpen, setPublishOpen] = useState(false)
   const { loggedIn, mounted: authMounted } = useAuth()
+  const currentUser = useQuery(api.users.current)
+  const publishedRecord = useQuery(
+    api.published.getForSimulation,
+    convexId
+      ? { simulationId: simulationId as Id<'simulations'> }
+      : 'skip',
+  )
+  const isOwner = Boolean(
+    convexSim && currentUser?._id && convexSim.userId === currentUser._id,
+  )
+  const isPublished = Boolean(publishedRecord)
+  const canPublish = Boolean(
+    convexId && isOwner && convexSim?.chaosScore !== undefined,
+  )
 
   const mockSim = mockId ? getSimulationById(simulationId) : undefined
 
@@ -265,6 +282,16 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
   
   return (
     <div className="min-h-screen bg-background">
+      {convexId && canPublish && (
+        <PublishDialog
+          simulationId={simulationId as Id<'simulations'>}
+          defaultTitle={displayWhatIf}
+          defaultDescription={museumDescription ?? simulation.relicPrompt ?? undefined}
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+        />
+      )}
+
       {/* Fullscreen Story Viewer */}
       {hasStoryCards && (
         <FullscreenStoryViewer
@@ -360,6 +387,24 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
                 >
                   <Bookmark className={isSaved ? 'fill-current' : undefined} />
                 </Button>
+                {canPublish && (
+                  <Button
+                    variant={isPublished ? 'outline' : 'default'}
+                    size="lg"
+                    className={
+                      isPublished
+                        ? 'h-11 px-4 gap-2 border-emerald-400/40 text-emerald-300 hover:bg-emerald-400/10'
+                        : 'h-11 px-4 gap-2 bg-emerald-500 hover:bg-emerald-500/90 text-white'
+                    }
+                    onClick={() => setPublishOpen(true)}
+                    aria-label={isPublished ? 'Update community post' : 'Publish to community'}
+                  >
+                    <Globe2 className="w-5 h-5" />
+                    <span className="hidden sm:inline">
+                      {isPublished ? 'Published' : 'Publish'}
+                    </span>
+                  </Button>
+                )}
                 <Button
                   size="lg"
                   className="h-11 px-4 gap-2 bg-primary hover:bg-primary/90"
