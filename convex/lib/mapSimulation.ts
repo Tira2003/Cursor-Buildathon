@@ -4,7 +4,13 @@ import type { Doc } from "../_generated/dataModel";
 export function mapSimulationDoc(
   sim: Doc<"simulations">,
   relicImageUrl?: string,
+  museum?: {
+    artifactImageUrl?: string;
+    artifactName?: string;
+    artifactDescription?: string;
+  },
 ) {
+  const museumArtifactImageUrl = museum?.artifactImageUrl;
   return {
     _id: sim._id,
     userId: sim.userId,
@@ -26,7 +32,10 @@ export function mapSimulationDoc(
     selectedBranchId: sim.selectedBranchId,
     relicPrompt: sim.relicPrompt,
     relicImageId: sim.relicImageId,
-    relicImageUrl,
+    relicImageUrl: relicImageUrl ?? museumArtifactImageUrl,
+    museumArtifactImageUrl,
+    museumArtifactName: museum?.artifactName,
+    museumArtifactDescription: museum?.artifactDescription,
     isChaotic: sim.isChaotic,
     status: sim.status as string,
     visibility: sim.visibility as string,

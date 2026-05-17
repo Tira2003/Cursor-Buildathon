@@ -111,6 +111,52 @@ export const patchPhase2 = internalMutation({
   },
 });
 
+export const getMuseumTimelineContext = internalQuery({
+  args: { simulationId: v.id("simulations") },
+  returns: v.union(
+    v.object({
+      artifactName: v.string(),
+      artifactEra: v.optional(v.string()),
+      artifactContext: v.string(),
+      selectedDurationLabel: v.optional(v.string()),
+      whatIfPrompt: v.optional(v.string()),
+      parentTimelineSummary: v.optional(v.string()),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const sim = await ctx.db.get(args.simulationId);
+    if (!sim?.museumScanId) return null;
+
+    const scan = await ctx.db.get(sim.museumScanId);
+    if (!scan?.extractedArtifactName) return null;
+
+    const contextParts = [
+      scan.extractedLabelText,
+      scan.historicalContext,
+    ].filter(Boolean);
+
+    let parentTimelineSummary: string | undefined;
+    if (sim.remixOfSimulationId) {
+      const parent = await ctx.db.get(sim.remixOfSimulationId);
+      if (parent?.events.length) {
+        parentTimelineSummary = parent.events
+          .map((e) => `${e.year} — ${e.title}`)
+          .join("; ");
+      }
+    }
+
+    return {
+      artifactName: scan.extractedArtifactName,
+      artifactEra: scan.extractedEra,
+      artifactContext: contextParts.join("\n") || scan.extractedArtifactName,
+      selectedDurationLabel: sim.selectedDurationLabel,
+      whatIfPrompt: sim.whatIfPrompt,
+      parentTimelineSummary,
+    };
+  },
+});
+
 export const patchMuseumTimeline = internalMutation({
   args: {
     simulationId: v.id("simulations"),
@@ -119,6 +165,7 @@ export const patchMuseumTimeline = internalMutation({
     lostToHistory: v.array(v.string()),
     gainedByHumanity: v.array(v.string()),
     relicPrompt: v.string(),
+    whatIfPrompt: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -128,11 +175,37 @@ export const patchMuseumTimeline = internalMutation({
       lostToHistory: args.lostToHistory,
       gainedByHumanity: args.gainedByHumanity,
       relicPrompt: args.relicPrompt,
+      whatIfPrompt: args.whatIfPrompt,
       isChaotic: args.chaosScore >= CHAOS_CHAOTIC_THRESHOLD,
       status: "editable",
       updatedAt: Date.now(),
     });
     return null;
+  },
+});
+
+export const getSimulationEventsMeta = internalQuery({
+  args: { simulationId: v.id("simulations") },
+  returns: v.union(v.object({ count: v.number() }), v.null()),
+  handler: async (ctx, args) => {
+    const sim = await ctx.db.get(args.simulationId);
+    if (!sim) return null;
+    return { count: sim.events.length };
+  },
+});
+
+export const getSimulationEventImage = internalQuery({
+  args: {
+    simulationId: v.id("simulations"),
+    eventIndex: v.number(),
+  },
+  returns: v.union(v.object({ imageUrl: v.string() }), v.null()),
+  handler: async (ctx, args) => {
+    const sim = await ctx.db.get(args.simulationId);
+    const event = sim?.events[args.eventIndex];
+    if (!event?.imageStorageId) return null;
+    const imageUrl = await ctx.storage.getUrl(event.imageStorageId);
+    return imageUrl ? { imageUrl } : null;
   },
 });
 

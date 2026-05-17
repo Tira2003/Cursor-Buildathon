@@ -5,29 +5,30 @@ import { CHAOS_CHAOTIC_THRESHOLD } from "../lib/constants";
 import { demoPhase1, demoPhase2 } from "./demoData";
 import timelinesData from "./timelines.json";
 import incidentsData from "./incidents.json";
+import exampleWhatIfs from "./exampleWhatIfs.json";
 
 const INCIDENT_IMAGES: Record<number, string> = {
-  1: "/seed/arahat-mahinda.jpg",
-  2: "/seed/battle-vijithapura.jpg",
-  3: "/seed/chola-invasion.jpg",
-  4: "/seed/parakramabahu.jpg",
-  5: "/seed/kalinga-magha.jpg",
-  6: "/seed/battle-danture.jpg",
-  7: "/seed/kandyan-convention.jpg",
-  8: "/seed/franz-ferdinand.jpg",
-  9: "/seed/lusitania.jpg",
-  10: "/seed/zimmermann-telegram.jpg",
-  11: "/seed/treaty-versailles.jpg",
-  12: "/seed/julius-caesar.jpg",
-  13: "/seed/edict-milan.jpg",
-  14: "/seed/fall-of-rome.jpg",
+  2: "/seed/arahat-mahinda.jpg",
+  3: "/seed/battle-vijithapura.jpg",
+  6: "/seed/chola-invasion.jpg",
+  8: "/seed/parakramabahu.jpg",
+  11: "/seed/kalinga-magha.jpg",
+  14: "/seed/battle-danture.jpg",
+  17: "/seed/kandyan-convention.jpg",
+  19: "/seed/franz-ferdinand.jpg",
+  20: "/seed/lusitania.jpg",
+  22: "/seed/zimmermann-telegram.jpg",
+  24: "/seed/treaty-versailles.jpg",
+  25: "/seed/julius-caesar.jpg",
+  28: "/seed/edict-milan.jpg",
+  30: "/seed/fall-of-rome.jpg",
 };
 
 function timelineSlugForOrder(order: number): string {
-  if (order <= 3) return "anuradhapura";
-  if (order <= 5) return "polonnaruwa";
-  if (order <= 7) return "mahanuwara";
-  if (order <= 11) return "wwi";
+  if (order <= 6) return "anuradhapura";
+  if (order <= 11) return "polonnaruwa";
+  if (order <= 18) return "mahanuwara";
+  if (order <= 24) return "wwi";
   return "roman-empire";
 }
 
@@ -89,15 +90,18 @@ export const seedAll = internalMutation({
       const timelineId = slugToId.get(slug);
       if (!timelineId) continue;
 
+      const imageUrl = INCIDENT_IMAGES[row.order];
+      const prompts = exampleWhatIfs[row.order - 1];
       const id = await ctx.db.insert("timelineIncidents", {
         timelineId,
         year: row.year,
         title: row.title,
         description: row.description,
         location: row.location,
-        relatedImageUrl: INCIDENT_IMAGES[row.order],
+        ...(imageUrl !== undefined ? { relatedImageUrl: imageUrl } : {}),
         realOutcome: row.realOutcome,
         order: row.order,
+        ...(prompts?.length === 3 ? { exampleWhatIfs: prompts } : {}),
       });
       incidentIds.set(row.order, id);
     }
@@ -109,9 +113,9 @@ export const seedAll = internalMutation({
       const wwiId = slugToId.get("wwi")!;
       const mahanuwaraId = slugToId.get("mahanuwara")!;
       const polonnaruwaId = slugToId.get("polonnaruwa")!;
-      const ferdinandId = incidentIds.get(8)!;
-      const conventionId = incidentIds.get(7)!;
-      const maghaId = incidentIds.get(5)!;
+      const ferdinandId = incidentIds.get(19)!;
+      const conventionId = incidentIds.get(17)!;
+      const maghaId = incidentIds.get(11)!;
 
       const publishes = [
         {

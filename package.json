@@ -10,13 +10,16 @@
     "build": "node scripts/sync-env.mjs && npm run build --prefix frontend",
     "start": "npm run start --prefix frontend",
     "lint": "npm run lint --prefix frontend",
-    "install:all": "npm install && npm install --prefix frontend"
+    "install:all": "npm install && npm install --prefix frontend",
+    "fetch-incident-images": "npx convex run actions/fetchIncidentImages:run --push"
   },
   "dependencies": {
+    "@convex-dev/auth": "^0.0.92",
     "@google/generative-ai": "^0.24.1",
     "convex": "^1.39.1"
   },
   "devDependencies": {
+    "@types/node": "^25.8.0",
     "typescript": "5.7.3"
   }
 }

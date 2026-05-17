@@ -155,4 +155,3 @@ export function LedgerSplit({ extinct, born, animated = true }: LedgerSplitProps
     </div>
   )
 }
-

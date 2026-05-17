@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
-import { Sparkles, Clock, ChevronLeft, ChevronRight, Expand, X } from 'lucide-react'
+import { Sparkles, ChevronLeft, ChevronRight, Expand, X } from 'lucide-react'
+import { HistoricalImage } from '@/components/ui/historical-image'
 import { Button } from '@/components/ui/button'
 import type { StoryCard } from '@/lib/types'
 
@@ -27,25 +27,37 @@ export function StoryCards({ cards, onGenerateImage }: StoryCardsProps) {
     setCurrentIndex((prev) => (prev < cards.length - 1 ? prev + 1 : 0))
   }
 
-  const handleGenerateImage = async (cardId: string) => {
-    if (generatingCards.has(cardId) || generatedImages[cardId]) return
+  const handleGenerateImage = async (cardId: string): Promise<string | undefined> => {
+    if (generatingCards.has(cardId)) {
+      return generatedImages[cardId] ?? cards.find((c) => c.id === cardId)?.image
+    }
 
     setGeneratingCards((prev) => new Set([...prev, cardId]))
 
-    // Simulate image generation with a delay
-    await new Promise((resolve) => setTimeout(resolve, 3000))
+    try {
+      if (onGenerateImage) {
+        const url = await onGenerateImage(cardId)
+        if (url) {
+          setGeneratedImages((prev) => ({ ...prev, [cardId]: url }))
+          return url
+        }
+        return undefined
+      }
 
-    // Use the card's existing image or a placeholder
-    const card = cards.find((c) => c.id === cardId)
-    if (card?.image) {
-      setGeneratedImages((prev) => ({ ...prev, [cardId]: card.image! }))
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      const card = cards.find((c) => c.id === cardId)
+      if (card?.image) {
+        setGeneratedImages((prev) => ({ ...prev, [cardId]: card.image! }))
+        return card.image
+      }
+      return undefined
+    } finally {
+      setGeneratingCards((prev) => {
+        const next = new Set(prev)
+        next.delete(cardId)
+        return next
+      })
     }
-
-    setGeneratingCards((prev) => {
-      const next = new Set(prev)
-      next.delete(cardId)
-      return next
-    })
   }
 
   // Auto-trigger image generation for current card
@@ -99,6 +111,9 @@ export function StoryCards({ cards, onGenerateImage }: StoryCardsProps) {
           isGenerating={generatingCards.has(currentCard.id)}
           generatedImage={generatedImages[currentCard.id]}
           onExpand={() => setExpandedCard(currentCard.id)}
+          onRetry={async () => {
+            await handleGenerateImage(currentCard.id)
+          }}
           isMain
         />
       </div>
@@ -150,20 +165,17 @@ export function StoryCards({ cards, onGenerateImage }: StoryCardsProps) {
                 : 'border-transparent hover:border-primary/50'
             }`}
           >
-            {generatedImages[card.id] ? (
-              <Image
-                src={generatedImages[card.id]}
-                alt={card.title}
-                fill
-                className="object-cover"
-              />
-            ) : generatingCards.has(card.id) ? (
-              <div className="absolute inset-0 bg-muted animate-shimmer" />
-            ) : (
-              <div className="absolute inset-0 bg-muted flex items-center justify-center">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-              </div>
-            )}
+            {generatingCards.has(card.id) ? (
+              <div className="absolute inset-0 bg-muted animate-shimmer z-10" />
+            ) : null}
+            <HistoricalImage
+              src={generatedImages[card.id] ?? card.image}
+              alt={card.title}
+              className="absolute inset-0"
+              imageClassName="object-cover"
+              onRetry={() => handleGenerateImage(card.id)}
+              retryLabel="Load image"
+            />
             {index === currentIndex && (
               <div className="absolute inset-0 bg-primary/10" />
             )}
@@ -189,12 +201,14 @@ function StoryCardDisplay({
   isGenerating,
   generatedImage,
   onExpand,
+  onRetry,
   isMain,
 }: {
   card: StoryCard
   isGenerating: boolean
   generatedImage?: string
   onExpand?: () => void
+  onRetry?: () => Promise<void>
   isMain?: boolean
 }) {
   return (
@@ -205,38 +219,28 @@ function StoryCardDisplay({
     >
       {/* Image Container */}
       <div className="relative aspect-[16/9] bg-muted overflow-hidden">
-        {generatedImage ? (
+        {isGenerating ? (
+          <ImageGeneratingAnimation prompt={card.imagePrompt} />
+        ) : (
           <>
-            <Image
-              src={generatedImage}
+            <HistoricalImage
+              src={generatedImage ?? card.image}
               alt={card.title}
-              fill
-              className="object-cover animate-fade-in-up"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
+              className="absolute inset-0"
+              imageClassName="object-cover animate-fade-in-up"
+              onRetry={onRetry}
+              retryLabel="Load image"
             />
-            {/* Vintage overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
-            {/* Expand button */}
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent pointer-events-none" />
             {onExpand && (
               <button
                 onClick={onExpand}
-                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center hover:bg-card transition-colors"
+                className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center hover:bg-card transition-colors"
               >
                 <Expand className="w-4 h-4 text-foreground" />
               </button>
             )}
           </>
-        ) : isGenerating ? (
-          <ImageGeneratingAnimation prompt={card.imagePrompt} />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Awaiting visualization</p>
-            </div>
-          </div>
         )}
 
         {/* Year Badge */}
@@ -424,9 +428,13 @@ function ExpandedStoryCard({
         <div className="rounded-lg border border-border bg-card overflow-hidden">
           {/* Large Image */}
           <div className="relative aspect-[16/9]">
-            {image && (
-              <Image src={image} alt={card.title} fill className="object-cover" />
-            )}
+            <HistoricalImage
+              src={image ?? card.image}
+              alt={card.title}
+              className="absolute inset-0"
+              imageClassName="object-cover"
+              retryLabel="Reload image"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
 
             {/* Year badge */}
@@ -458,3 +466,4 @@ function ExpandedStoryCard({
     </div>
   )
 }
+

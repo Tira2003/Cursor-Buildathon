@@ -5,7 +5,7 @@ import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { demoMuseum, isDemoMode } from "../lib/demo";
 import { generateJsonWithImages } from "../lib/gemini";
-import { isGeminiQuotaError } from "../lib/geminiErrors";
+import { isLlmRateLimitError } from "../lib/llmErrors";
 
 const visionResult = v.object({
   artifactName: v.string(),
@@ -37,6 +37,7 @@ export const run = action({
         extractedArtifactName: data.artifactName,
         extractedLabelText: data.labelText,
         extractedEra: data.estimatedEra,
+        historicalContext: data.historicalContext,
       });
       return {
         artifactName: data.artifactName,
@@ -60,6 +61,7 @@ export const run = action({
         extractedArtifactName: data.artifactName,
         extractedLabelText: data.labelText,
         extractedEra: data.estimatedEra,
+        historicalContext: data.historicalContext,
       });
       return {
         artifactName: data.artifactName,
@@ -72,6 +74,30 @@ export const run = action({
     };
 
     const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
+    const artifactImageUrl = scan.artifactUrl.startsWith("http")
+      ? scan.artifactUrl
+      : `${siteUrl}${scan.artifactUrl}`;
+
+    const imageParts: { text?: string; imageUrl?: string }[] = scan.labelUrl
+      ? [
+          { text: "Artifact photo:" },
+          { imageUrl: artifactImageUrl },
+          { text: "Museum label photo:" },
+          {
+            imageUrl: scan.labelUrl.startsWith("http")
+              ? scan.labelUrl
+              : `${siteUrl}${scan.labelUrl}`,
+          },
+        ]
+      : [
+          { text: "Artifact photo (no separate label image provided):" },
+          { imageUrl: artifactImageUrl },
+        ];
+
+    const prompt = scan.labelUrl
+      ? `Analyze museum artifact and label photos. Return JSON: { artifactName, artifactType, labelText, estimatedEra, historicalContext, confidence 0-1 }`
+      : `No separate label photo was provided. Analyze the artifact image only and infer name, type, era, any visible inscription, and historical context from the artifact itself. Return JSON: { artifactName, artifactType, labelText, estimatedEra, historicalContext, confidence 0-1 }`;
+
     try {
       const data = await generateJsonWithImages<{
         artifactName: string;
@@ -80,30 +106,29 @@ export const run = action({
         estimatedEra: string;
         historicalContext: string;
         confidence: number;
-      }>(
-        `Analyze museum artifact and label photos. Return JSON: { artifactName, artifactType, labelText, estimatedEra, historicalContext, confidence 0-1 }`,
-        [
-          { text: "Artifact photo:" },
-          { imageUrl: scan.artifactUrl.startsWith("http") ? scan.artifactUrl : `${siteUrl}${scan.artifactUrl}` },
-          { text: "Museum label photo:" },
-          { imageUrl: scan.labelUrl.startsWith("http") ? scan.labelUrl : `${siteUrl}${scan.labelUrl}` },
-        ],
-      );
+      }>(prompt, imageParts);
 
       await ctx.runMutation(internal.museumScansInternal.patchAnalyzed, {
         scanId: args.scanId,
         extractedArtifactName: data.artifactName,
         extractedLabelText: data.labelText,
         extractedEra: data.estimatedEra,
+        historicalContext: data.historicalContext,
       });
 
       return data;
     } catch (err) {
-      if (isGeminiQuotaError(err)) {
-        console.warn("[AltEra] Gemini quota exceeded — using demo museum vision");
-        return await applyDemo();
+      if (isLlmRateLimitError(err)) {
+        if (isDemoMode(args.demo)) {
+          console.warn("[AltEra] Groq rate limit — using demo museum vision");
+          return await applyDemo();
+        }
+        throw new Error(
+          "Groq API rate limit (429 / rate_limit_exceeded). Check GROQ_API_KEY quota in the Convex dashboard, or add ?demo=1 for offline demo.",
+        );
       }
-      throw err;
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Museum vision analysis failed: ${msg}`);
     }
   },
 });

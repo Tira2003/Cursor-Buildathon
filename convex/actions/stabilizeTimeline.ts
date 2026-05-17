@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import { demoStabilizeWin, isDemoMode } from "../lib/demo";
 import { CHAOS_WIN_THRESHOLD } from "../lib/constants";
 import { generateJson } from "../lib/gemini";
+import { normalizeCorrectiveChoices } from "../lib/normalizeChoices";
 import type { TimelineEvent } from "../types/contracts";
 
 export const startChallenge = action({
@@ -32,17 +33,26 @@ export const startChallenge = action({
       return { correctiveChoices: demoStabilizeWin.challengeStart.correctiveChoices };
     }
 
-    const sim = await ctx.runQuery(api.simulations.getPublic, {
+    const sim = await ctx.runQuery(api.simulations.get, {
       simulationId: args.simulationId,
     });
     if (!sim) throw new Error("Simulation not found");
+    if (sim.events.length === 0) {
+      throw new Error("Simulation has no timeline events to stabilize");
+    }
 
-    const data = await generateJson<{ correctiveChoices: typeof demoStabilizeWin.challengeStart.correctiveChoices }>(
-      `Return JSON with 5 correctiveChoices: { id, title, description } to reduce chaos on this timeline.`,
+    const data = await generateJson<{
+      correctiveChoices: Array<{ id?: unknown; title?: unknown; description?: unknown }>;
+    }>(
+      `Return JSON with exactly 5 correctiveChoices: [{ "id": "fix_1", "title": "...", "description": "..." }, ...]. Each id must be a string like "fix_1", never a number.`,
       `Chaotic timeline chaos ${sim.chaosScore}. Events: ${sim.events.map((e: { title: string }) => e.title).join("; ")}`,
     );
 
-    return { correctiveChoices: data.correctiveChoices };
+    if (!data.correctiveChoices?.length) {
+      throw new Error("No corrective choices returned from model");
+    }
+
+    return { correctiveChoices: normalizeCorrectiveChoices(data.correctiveChoices) };
   },
 });
 
@@ -64,7 +74,7 @@ export const submitFixes = action({
     won: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    const sim = await ctx.runQuery(api.simulations.getPublic, {
+    const sim = await ctx.runQuery(api.simulations.get, {
       simulationId: args.simulationId,
     });
     if (!sim) throw new Error("Simulation not found");
@@ -88,7 +98,10 @@ export const submitFixes = action({
         `Given chaotic timeline and fixes, return JSON { resultingChaosScore: number 0-100 }. Good fixes lower score.`,
         `Current chaos: ${sim.chaosScore}. Fixes applied: ${selected.map((c) => c.title).join(", ")}`,
       );
-      resultingChaosScore = Math.min(100, Math.max(0, data.resultingChaosScore));
+      const score = Number(data.resultingChaosScore);
+      resultingChaosScore = Number.isFinite(score)
+        ? Math.min(100, Math.max(0, score))
+        : Math.max(0, (sim.chaosScore ?? 50) - selected.length * 12);
     }
 
     const won = resultingChaosScore < CHAOS_WIN_THRESHOLD;

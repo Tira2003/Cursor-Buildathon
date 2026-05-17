@@ -2,8 +2,8 @@
 
 import { useQuery } from 'convex/react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { ArrowLeft, Calendar, Sparkles } from 'lucide-react'
+import { HistoricalImage } from '@/components/ui/historical-image'
 import { api } from '@/convex/_generated/api'
 import { Header } from '@/components/layout/header'
 import { IncidentList } from '@/components/timelines/incident-list'
@@ -54,12 +54,13 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
           </Link>
           <div className="relative rounded-xl overflow-hidden mb-8">
             <div className="absolute inset-0">
-              <Image
+              <HistoricalImage
                 src={timeline.coverImage}
                 alt={timeline.title}
-                fill
-                className="object-cover opacity-30"
+                className="absolute inset-0 opacity-30"
+                imageClassName="object-cover"
                 priority
+                retryLabel="Reload image"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background via-background/90 to-background/60" />
             </div>
@@ -83,7 +84,7 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
             <p className="text-muted-foreground mb-8">
               Select any moment below to explore an alternate timeline.
             </p>
-            <IncidentList incidents={timeline.incidents} timelineDbId={data.timeline._id} />
+            <IncidentList incidents={timeline.incidents} />
           </section>
         </div>
       </main>

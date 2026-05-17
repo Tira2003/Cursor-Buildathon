@@ -5,7 +5,7 @@ import { requireUserId } from "./lib/auth";
 export const create = mutation({
   args: {
     artifactImageId: v.id("_storage"),
-    labelImageId: v.id("_storage"),
+    labelImageId: v.optional(v.id("_storage")),
   },
   returns: v.id("museumScans"),
   handler: async (ctx, args) => {
@@ -13,7 +13,7 @@ export const create = mutation({
     return await ctx.db.insert("museumScans", {
       userId,
       artifactImageId: args.artifactImageId,
-      labelImageId: args.labelImageId,
+      ...(args.labelImageId !== undefined ? { labelImageId: args.labelImageId } : {}),
       status: "uploaded",
       createdAt: Date.now(),
     });
@@ -26,7 +26,7 @@ export const get = query({
     v.object({
       _id: v.id("museumScans"),
       artifactImageId: v.id("_storage"),
-      labelImageId: v.id("_storage"),
+      labelImageId: v.optional(v.id("_storage")),
       extractedArtifactName: v.optional(v.string()),
       extractedLabelText: v.optional(v.string()),
       extractedEra: v.optional(v.string()),
@@ -38,7 +38,15 @@ export const get = query({
     const userId = await requireUserId(ctx);
     const scan = await ctx.db.get(args.scanId);
     if (!scan || scan.userId !== userId) return null;
-    return { ...scan, status: scan.status as string };
+    return {
+      _id: scan._id,
+      artifactImageId: scan.artifactImageId,
+      labelImageId: scan.labelImageId,
+      extractedArtifactName: scan.extractedArtifactName,
+      extractedLabelText: scan.extractedLabelText,
+      extractedEra: scan.extractedEra,
+      status: scan.status as string,
+    };
   },
 });
 

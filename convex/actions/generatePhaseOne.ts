@@ -7,7 +7,9 @@ import { demoPhase1 } from "../seed/demoData";
 import { isDemoMode } from "../lib/demo";
 import { pickDemoPhase1 } from "../lib/demoFixtures";
 import { generateJson } from "../lib/gemini";
-import { isGeminiQuotaError } from "../lib/geminiErrors";
+import { isLlmRateLimitError } from "../lib/llmErrors";
+import { normalizeBranchChoices } from "../lib/normalizeChoices";
+import { normalizeTimelineEvents } from "../lib/normalizeTimeline";
 
 const phase1Schema = `Return JSON: {
   "chaosScore": number 0-100,
@@ -67,15 +69,15 @@ What if: ${context.whatIfPrompt}`,
       await ctx.runMutation(internal.simulationsInternal.patchPhase1, {
         simulationId: args.simulationId,
         chaosScore: Math.min(100, Math.max(0, data.chaosScore)),
-        immediateRipple: data.immediateRipple,
-        generationalShift: data.generationalShift,
-        branchChoices: data.branchChoices,
+        immediateRipple: normalizeTimelineEvents(data.immediateRipple),
+        generationalShift: normalizeTimelineEvents(data.generationalShift),
+        branchChoices: normalizeBranchChoices(data.branchChoices),
       });
       return { ok: true };
     } catch (err) {
-      if (isGeminiQuotaError(err)) {
+      if (isLlmRateLimitError(err)) {
         console.warn(
-          `[AltEra] Gemini quota exceeded — using timeline demo fixtures (${fixtureCtx.timelineSlug ?? "inferred"})`,
+          `[AltEra] Groq rate limit — using timeline demo fixtures (${fixtureCtx.timelineSlug ?? "inferred"})`,
         );
         await applyDemo();
         return { ok: true, usedDemoFallback: true };

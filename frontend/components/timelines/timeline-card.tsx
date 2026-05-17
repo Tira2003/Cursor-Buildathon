@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { Calendar, ChevronRight } from 'lucide-react'
+import { HistoricalImage } from '@/components/ui/historical-image'
 import type { Timeline } from '@/lib/types'
 
 interface TimelineCardProps {
@@ -20,16 +20,13 @@ export function TimelineCard({ timeline, index }: TimelineCardProps) {
         {/* Cover Image */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/80 to-card/40 z-10" />
-          <Image
+          <HistoricalImage
             src={timeline.coverImage}
             alt={timeline.title}
-            fill
-            className="object-cover opacity-40 group-hover:opacity-50 transition-opacity duration-300"
+            className="absolute inset-0 opacity-40 group-hover:opacity-50 transition-opacity duration-300"
+            imageClassName="object-cover"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            onError={(e) => {
-              // Fallback for missing images
-              e.currentTarget.style.display = 'none'
-            }}
+            retryLabel="Reload image"
           />
         </div>
         
@@ -66,4 +63,3 @@ export function TimelineCard({ timeline, index }: TimelineCardProps) {
     </Link>
   )
 }
-

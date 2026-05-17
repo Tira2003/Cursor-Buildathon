@@ -11,12 +11,15 @@ export const timelineEvent = v.object({
   title: v.string(),
   description: v.string(),
   impactLevel,
+  imageStorageId: v.optional(v.id("_storage")),
+  imageUrl: v.optional(v.string()),
 });
 
 export const branchChoice = v.object({
   id: v.string(),
   title: v.string(),
   description: v.string(),
+  chaosImpact: v.optional(v.number()),
 });
 
 export const simulationSource = v.union(

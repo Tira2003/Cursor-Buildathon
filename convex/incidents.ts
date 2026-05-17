@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { resolveIncidentRelatedImageUrl } from "./lib/resolveIncidentImageUrl";
 
 export const get = query({
   args: { incidentId: v.id("timelineIncidents") },
@@ -15,6 +16,7 @@ export const get = query({
         relatedImageUrl: v.optional(v.string()),
         realOutcome: v.string(),
         order: v.number(),
+        exampleWhatIfs: v.optional(v.array(v.string())),
       }),
       timeline: v.object({
         _id: v.id("predefinedTimelines"),
@@ -41,9 +43,10 @@ export const get = query({
         title: inc.title,
         description: inc.description,
         location: inc.location,
-        relatedImageUrl: inc.relatedImageUrl,
+        relatedImageUrl: await resolveIncidentRelatedImageUrl(ctx, inc),
         realOutcome: inc.realOutcome,
         order: inc.order,
+        exampleWhatIfs: inc.exampleWhatIfs,
       },
       timeline: {
         _id: timeline._id,

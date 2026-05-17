@@ -7,7 +7,8 @@ import { demoPhase2 } from "../seed/demoData";
 import { isDemoMode } from "../lib/demo";
 import { pickDemoPhase2 } from "../lib/demoFixtures";
 import { generateJson } from "../lib/gemini";
-import { isGeminiQuotaError } from "../lib/geminiErrors";
+import { isLlmRateLimitError } from "../lib/llmErrors";
+import { normalizeTimelineEvents } from "../lib/normalizeTimeline";
 
 const phase2Schema = `Return JSON: {
   "globalConsequence": [{ "year": string, "title": string, "description": string, "impactLevel": "low"|"medium"|"high" }],
@@ -58,16 +59,16 @@ Prior chaos: ${context.chaosScore ?? "unknown"}`,
 
       await ctx.runMutation(internal.simulationsInternal.patchPhase2, {
         simulationId: args.simulationId,
-        globalConsequence: data.globalConsequence,
+        globalConsequence: normalizeTimelineEvents(data.globalConsequence),
         lostToHistory: data.lostToHistory,
         gainedByHumanity: data.gainedByHumanity,
         relicPrompt: data.relicPrompt,
       });
       return { ok: true };
     } catch (err) {
-      if (isGeminiQuotaError(err)) {
+      if (isLlmRateLimitError(err)) {
         console.warn(
-          `[AltEra] Gemini quota exceeded — using timeline demo phase 2 (${fixtureCtx.timelineSlug ?? "inferred"})`,
+          `[AltEra] Groq rate limit — using timeline demo phase 2 (${fixtureCtx.timelineSlug ?? "inferred"})`,
         );
         await applyDemo();
         return { ok: true, usedDemoFallback: true };

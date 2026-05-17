@@ -13,8 +13,11 @@ export const start = mutation({
   handler: async (ctx, args) => {
     const remixAuthorId = await requireUserId(ctx);
     const original = await ctx.db.get(args.originalSimulationId);
-    if (!original || original.visibility !== "public") {
-      throw new Error("Original simulation not found or not public");
+    if (!original) {
+      throw new Error("Original simulation not found");
+    }
+    if (original.visibility !== "public" && original.userId !== remixAuthorId) {
+      throw new Error("Original simulation is not accessible");
     }
 
     const now = Date.now();
@@ -25,6 +28,8 @@ export const start = mutation({
       changedIncidentId: args.changedIncidentId ?? original.changedIncidentId,
       whatIfPrompt: args.newWhatIfPrompt,
       museumScanId: original.museumScanId,
+      selectedDurationId: original.selectedDurationId,
+      selectedDurationLabel: original.selectedDurationLabel,
       events: [],
       status: "draft",
       visibility: "private",

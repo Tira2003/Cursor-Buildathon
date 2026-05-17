@@ -19,6 +19,13 @@ import {
   visibility,
 } from "./validators";
 
+const apiUsage = v.object({
+  groq: v.number(),
+  serper: v.number(),
+  total: v.number(),
+  updatedAt: v.number(),
+});
+
 export default defineSchema({
   ...authTables,
 
@@ -39,17 +46,29 @@ export default defineSchema({
     description: v.string(),
     location: v.optional(v.string()),
     relatedImageUrl: v.optional(v.string()),
+    relatedImageStorageId: v.optional(v.id("_storage")),
     realOutcome: v.string(),
     order: v.number(),
+    exampleWhatIfs: v.optional(v.array(v.string())),
   }).index("by_timeline_order", ["timelineId", "order"]),
+
+  incidentImageCache: defineTable({
+    cacheKey: v.string(),
+    storageId: v.id("_storage"),
+    searchQuery: v.string(),
+    sourceUrl: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_cacheKey", ["cacheKey"]),
 
   museumScans: defineTable({
     userId: v.id("users"),
     artifactImageId: v.id("_storage"),
-    labelImageId: v.id("_storage"),
+    labelImageId: v.optional(v.id("_storage")),
     extractedArtifactName: v.optional(v.string()),
     extractedLabelText: v.optional(v.string()),
     extractedEra: v.optional(v.string()),
+    historicalContext: v.optional(v.string()),
+    apiUsage: v.optional(apiUsage),
     status: museumScanStatus,
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
@@ -79,6 +98,7 @@ export default defineSchema({
     visibility,
     remixOfSimulationId: v.optional(v.id("simulations")),
     stabilizedFromSimulationId: v.optional(v.id("simulations")),
+    apiUsage: v.optional(apiUsage),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

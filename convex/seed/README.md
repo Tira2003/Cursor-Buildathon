@@ -8,10 +8,11 @@ When inserting `timelineIncidents`, attach each row by `order` (from `incidents.
 
 | `order` | `timelineId` slug |
 |---------|-------------------|
-| 1–3 | `anuradhapura` |
-| 4–5 | `polonnaruwa` |
-| 6–7 | `mahanuwara` |
-| 8–11 | `wwi` |
+| 1–6 | `anuradhapura` |
+| 7–11 | `polonnaruwa` |
+| 13–18 | `mahanuwara` |
+| 19–24 | `wwi` |
+| 25–30 | `roman-empire` |
 
 Set `relatedImageUrl` to `/seed/<filename>.jpg` per IMAGE_MANIFEST.
 

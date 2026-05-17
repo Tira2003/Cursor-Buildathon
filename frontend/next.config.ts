@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: repoRoot,
   },
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default nextConfig;

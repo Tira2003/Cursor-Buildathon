@@ -6,7 +6,7 @@ import { v } from "convex/values";
 import { isDemoMode } from "../lib/demo";
 import { demoPhase2 } from "../seed/demoData";
 import { generateRelicPng } from "../lib/gemini";
-import { isGeminiQuotaError } from "../lib/geminiErrors";
+import { isLlmRateLimitError } from "../lib/llmErrors";
 
 export const run = action({
   args: {
@@ -30,7 +30,7 @@ export const run = action({
     try {
       png = await generateRelicPng(prompt);
     } catch (err) {
-      if (!isGeminiQuotaError(err)) throw err;
+      if (!isLlmRateLimitError(err)) throw err;
     }
     if (!png) {
       return { ok: true, skipped: true };

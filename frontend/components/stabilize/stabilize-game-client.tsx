@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useAction, useMutation, useQuery } from 'convex/react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Check, Trophy, RefreshCw, AlertTriangle } from 'lucide-react'
+import { api } from '@/convex/_generated/api'
+import { Id } from '@/convex/_generated/dataModel'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { ChaosMeter } from '@/components/simulation/chaos-meter'
-import { mockSimulation, mockStabilizeFixes } from '@/lib/mock-data'
+import { useDemoMode } from '@/lib/useDemoMode'
 import type { StabilizeFix } from '@/lib/types'
 
 interface StabilizeGameClientProps {
@@ -14,16 +17,53 @@ interface StabilizeGameClientProps {
 }
 
 export function StabilizeGameClient({ simulationId }: StabilizeGameClientProps) {
-  const initialChaos = simulationId === 'demo-cuban-1' ? 94 : mockSimulation.chaosScore
-  
-  const [fixes, setFixes] = useState<StabilizeFix[]>(mockStabilizeFixes.map(f => ({ ...f, selected: false })))
+  const demo = useDemoMode()
+  const sim = useQuery(api.simulations.get, {
+    simulationId: simulationId as Id<'simulations'>,
+  })
+  const startChallenge = useAction(api.actions.stabilizeTimeline.startChallenge)
+  const submitFixes = useAction(api.actions.stabilizeTimeline.submitFixes)
+  const recordAttempt = useMutation(api.stabilization.recordAttempt)
+
+  const initialChaos = sim?.chaosScore ?? 85
+  const [fixes, setFixes] = useState<StabilizeFix[]>([])
   const [currentChaos, setCurrentChaos] = useState(initialChaos)
   const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing')
   const [isApplying, setIsApplying] = useState(false)
-  
-  const selectedFixes = fixes.filter(f => f.selected)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (sim?.chaosScore !== undefined) {
+      setCurrentChaos(sim.chaosScore)
+    }
+  }, [sim?.chaosScore])
+
+  useEffect(() => {
+    if (sim === undefined || sim === null) return
+
+    setLoadError(null)
+    void startChallenge({ simulationId: simulationId as Id<'simulations'>, demo })
+      .then((r) => {
+        setFixes(
+          r.correctiveChoices.map((c) => ({
+            id: c.id,
+            title: c.title,
+            description: c.description,
+            chaosReduction: 12,
+            selected: demo && (c.id === 'fix_2' || c.id === 'fix_4'),
+          })),
+        )
+      })
+      .catch((err) => {
+        setLoadError(
+          err instanceof Error ? err.message : 'Failed to load stabilize challenge',
+        )
+      })
+  }, [simulationId, demo, startChallenge, sim])
+
+  const selectedFixes = fixes.filter((f) => f.selected)
   const totalReduction = selectedFixes.reduce((sum, f) => sum + f.chaosReduction, 0)
-  const projectedChaos = Math.max(0, initialChaos - totalReduction)
+  const projectedChaos = Math.max(0, currentChaos - totalReduction)
   
   const handleFixToggle = (fixId: string) => {
     if (gameState !== 'playing') return
@@ -35,33 +75,38 @@ export function StabilizeGameClient({ simulationId }: StabilizeGameClientProps) 
   
   const handleApplyFixes = async () => {
     if (selectedFixes.length === 0 || gameState !== 'playing') return
-    
+
     setIsApplying(true)
-    
-    // Animate chaos reduction
-    const targetChaos = projectedChaos
-    const steps = 20
-    const stepDelay = 50
-    const chaosStep = (currentChaos - targetChaos) / steps
-    
-    for (let i = 0; i < steps; i++) {
-      await new Promise(resolve => setTimeout(resolve, stepDelay))
-      setCurrentChaos(prev => Math.max(targetChaos, prev - chaosStep))
-    }
-    
-    setCurrentChaos(targetChaos)
-    setIsApplying(false)
-    
-    // Determine win/lose
-    if (targetChaos < 40) {
-      setGameState('won')
-    } else {
-      setGameState('lost')
+    try {
+      const r = await submitFixes({
+        simulationId: simulationId as Id<'simulations'>,
+        selectedChoiceIds: selectedFixes.map((f) => f.id),
+        correctiveChoices: fixes.map((f) => ({
+          id: f.id,
+          title: f.title,
+          description: f.description,
+        })),
+        demo,
+      })
+      await recordAttempt({
+        targetSimulationId: simulationId as Id<'simulations'>,
+        correctiveChoices: fixes.map((f) => ({
+          id: f.id,
+          title: f.title,
+          description: f.description,
+        })),
+        selectedChoiceIds: selectedFixes.map((f) => f.id),
+        resultingChaosScore: r.resultingChaosScore,
+      })
+      setCurrentChaos(r.resultingChaosScore)
+      setGameState(r.won ? 'won' : 'lost')
+    } finally {
+      setIsApplying(false)
     }
   }
-  
+
   const handleRetry = () => {
-    setFixes(mockStabilizeFixes.map(f => ({ ...f, selected: false })))
+    setFixes((prev) => prev.map((f) => ({ ...f, selected: false })))
     setCurrentChaos(initialChaos)
     setGameState('playing')
   }
@@ -152,8 +197,18 @@ export function StabilizeGameClient({ simulationId }: StabilizeGameClientProps) 
             </div>
           )}
           
+          {loadError && (
+            <p className="text-center text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2 mb-8">
+              {loadError}
+            </p>
+          )}
+
+          {fixes.length === 0 && gameState === 'playing' && !loadError && (
+            <p className="text-center text-muted-foreground mb-8">Loading corrective choices…</p>
+          )}
+
           {/* Fix Cards */}
-          {gameState === 'playing' && (
+          {gameState === 'playing' && fixes.length > 0 && (
             <>
               <div className="space-y-3 mb-8">
                 {fixes.map((fix) => (
@@ -215,4 +270,3 @@ export function StabilizeGameClient({ simulationId }: StabilizeGameClientProps) 
     </div>
   )
 }
-

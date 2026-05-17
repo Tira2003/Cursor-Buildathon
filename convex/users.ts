@@ -27,6 +27,19 @@ export const current = query({
   },
 });
 
+export const updateDisplayName = mutation({
+  args: { name: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { name }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error("Display name cannot be empty");
+    await ctx.db.patch(userId, { name: trimmed });
+    return null;
+  },
+});
+
 export const ensurePlayerStats = mutation({
   args: {},
   returns: v.id("playerStats"),

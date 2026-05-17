@@ -65,4 +65,3 @@ export function RippleList({ ripples, animated = true }: RippleListProps) {
     </div>
   )
 }
-

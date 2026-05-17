@@ -1,11 +1,11 @@
-import type { Timeline, Simulation, StabilizeFix, PublishedTimeline, MuseumScan, StoryCard } from './types'
+import type { Timeline, Simulation, StabilizeFix, PublishedTimeline, MuseumScan, StoryCard, UserProfile, UserSimulationSummary } from './types'
 
 // Curated historical timelines for the Browse flow
 export const mockTimelines: Timeline[] = [
   {
     slug: 'world-war-1',
     title: 'World War I',
-    era: '1914ΓÇô1918',
+    era: '1914–1918',
     coverImage: '/images/timelines/wwi.jpg',
     description: 'The Great War that reshaped empires and set the stage for the modern world.',
     incidents: [
@@ -38,7 +38,7 @@ export const mockTimelines: Timeline[] = [
   {
     slug: 'cold-war',
     title: 'The Cold War',
-    era: '1947ΓÇô1991',
+    era: '1947–1991',
     coverImage: '/images/timelines/cold-war.jpg',
     description: 'Decades of tension between superpowers that shaped the modern world.',
     incidents: [
@@ -71,7 +71,7 @@ export const mockTimelines: Timeline[] = [
   {
     slug: 'french-revolution',
     title: 'French Revolution',
-    era: '1789ΓÇô1799',
+    era: '1789–1799',
     coverImage: '/images/timelines/french-revolution.jpg',
     description: 'When the people rose against monarchy and changed political history forever.',
     incidents: [
@@ -101,7 +101,7 @@ export const mockTimelines: Timeline[] = [
   {
     slug: 'renaissance',
     title: 'The Renaissance',
-    era: '1400ΓÇô1600',
+    era: '1400–1600',
     coverImage: '/images/timelines/renaissance.jpg',
     description: 'A cultural rebirth that transformed art, science, and human thought.',
     incidents: [
@@ -122,7 +122,7 @@ export const mockTimelines: Timeline[] = [
       {
         id: 'sistine-chapel',
         title: 'Michelangelo Paints the Sistine Chapel',
-        date: '1508ΓÇô1512',
+        date: '1508–1512',
         description: 'Divine artistry reaches its peak.',
         context: 'Michelangelo completed one of the greatest artistic achievements in human history.'
       }
@@ -131,7 +131,7 @@ export const mockTimelines: Timeline[] = [
   {
     slug: 'industrial-revolution',
     title: 'Industrial Revolution',
-    era: '1760ΓÇô1840',
+    era: '1760–1840',
     coverImage: '/images/timelines/industrial.jpg',
     description: 'Machines transformed society and created the modern economy.',
     incidents: [
@@ -161,7 +161,7 @@ export const mockTimelines: Timeline[] = [
   {
     slug: 'ancient-rome',
     title: 'Fall of Rome',
-    era: '27 BC ΓÇô 476 AD',
+    era: '27 BC – 476 AD',
     coverImage: '/images/timelines/rome.jpg',
     description: 'The rise and fall of history\'s greatest empire.',
     incidents: [
@@ -225,7 +225,7 @@ export const mockSimulation: Simulation = {
     }
   ],
   extinct: [
-    { id: 'e1', name: 'Treaty of Versailles', description: 'Never signedΓÇöno punitive peace to fuel resentment', year: '1919' },
+    { id: 'e1', name: 'Treaty of Versailles', description: 'Never signed—no punitive peace to fuel resentment', year: '1919' },
     { id: 'e2', name: 'Weimar Republic', description: 'Germany remains an empire under Wilhelm II', year: '1919' },
     { id: 'e3', name: 'League of Nations', description: 'No post-war body emerges without a Great War', year: '1920' },
     { id: 'e4', name: 'Russian Revolution', description: 'Without war strain, the Tsar maintains control', year: '1917' },
@@ -234,7 +234,7 @@ export const mockSimulation: Simulation = {
   born: [
     { id: 'b1', name: 'Danubian Federation', description: 'Franz Ferdinand\'s vision of a unified Central European state', year: '1920' },
     { id: 'b2', name: 'Imperial Space Program', description: 'United European powers reach the moon by 1955', year: '1955' },
-    { id: 'b3', name: 'The Long Peace', description: 'A century without major European conflict', year: '1914ΓÇô2014' },
+    { id: 'b3', name: 'The Long Peace', description: 'A century without major European conflict', year: '1914–2014' },
     { id: 'b4', name: 'Habsburg Computing', description: 'Vienna becomes the world\'s technology capital', year: '1960' },
     { id: 'b5', name: 'Slavic Autonomy Act', description: 'Peaceful resolution of ethnic tensions', year: '1922' }
   ],
@@ -392,6 +392,66 @@ export const mockPublishedTimelines: PublishedTimeline[] = [
   }
 ]
 
+export const mockUserProfile: UserProfile = {
+  email: 'itpspb2@gmail.com',
+  displayName: 'Timeline Explorer',
+  stabilizeWins: 0,
+  chaosPublished: 0,
+  simulationsCount: 7,
+}
+
+export const mockUserSimulations: UserSimulationSummary[] = [
+  {
+    id: 'demo-sarajevo-1',
+    whatIf: 'What if the assassin hesitated for just three seconds?',
+    chaosScore: 72,
+    status: 'ready',
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'user-sim-2',
+    whatIf: 'What if the key figure had survived?',
+    chaosScore: 45,
+    status: 'phase1',
+    updatedAt: new Date(Date.now() - 86400000).toISOString(),
+  },
+  {
+    id: 'user-sim-3',
+    whatIf: 'What if a crucial decision went the other way?',
+    chaosScore: 28,
+    status: 'ready',
+    updatedAt: new Date(Date.now() - 172800000).toISOString(),
+  },
+  {
+    id: 'demo-cuban-1',
+    whatIf: 'What if a Soviet submarine captain launched his nuclear torpedo?',
+    chaosScore: 94,
+    status: 'published',
+    updatedAt: new Date(Date.now() - 259200000).toISOString(),
+  },
+  {
+    id: 'user-sim-5',
+    whatIf: 'What if the event happened 10 years later?',
+    chaosScore: 61,
+    status: 'phase1',
+    updatedAt: new Date(Date.now() - 432000000).toISOString(),
+  },
+  {
+    id: 'user-sim-6',
+    whatIf: 'What if the weather had been different that day?',
+    chaosScore: 38,
+    status: 'ready',
+    updatedAt: new Date(Date.now() - 604800000).toISOString(),
+  },
+  {
+    id: 'user-sim-7',
+    whatIf: 'What if a secret alliance had been discovered?',
+    chaosScore: 55,
+    status: 'generating',
+    updatedAt: new Date(Date.now() - 7200000).toISOString(),
+  },
+]
+
 // Museum scan demo
 export const mockMuseumScan: MuseumScan = {
   id: 'scan-demo-1',
@@ -407,6 +467,16 @@ export function getTimelineBySlug(slug: string): Timeline | undefined {
   return mockTimelines.find(t => t.slug === slug)
 }
 
+export function getSimulationById(simulationId: string): Simulation | undefined {
+  if (simulationId === 'demo-cuban-1') {
+    return { ...mockSimulationHighChaos }
+  }
+  if (simulationId === 'demo-sarajevo-1' || simulationId.startsWith('sim-')) {
+    return { ...mockSimulation, id: simulationId }
+  }
+  return { ...mockSimulation, id: simulationId }
+}
+
 // Helper to get incident by id
 export function getIncidentById(id: string): { timeline: Timeline; incident: Timeline['incidents'][0] } | undefined {
   for (const timeline of mockTimelines) {
@@ -416,27 +486,6 @@ export function getIncidentById(id: string): { timeline: Timeline; incident: Tim
     }
   }
   return undefined
-}
-
-// Story slides for immersive gallery (falls back to ripples when no story cards yet)
-export function getStorySlides(
-  simulation: Simulation,
-  incidentImage?: string,
-): StoryCard[] {
-  if (simulation.storyCards && simulation.storyCards.length > 0) {
-    return simulation.storyCards
-  }
-
-  const image = incidentImage ?? simulation.relicImage ?? '/images/relic-demo.jpg'
-  return simulation.ripples.slice(0, 5).map((ripple, index) => ({
-    id: `ripple-slide-${index}`,
-    year: '—',
-    title: `Consequence ${index + 1}`,
-    description: ripple,
-    imagePrompt: '',
-    image,
-    isAlternate: true,
-  }))
 }
 
 // Simulate API delay for realistic UX

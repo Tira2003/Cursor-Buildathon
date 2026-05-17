@@ -100,4 +100,3 @@ The fall of Rome to Germanic tribes in 476 AD traditionally marks the beginning 
   
   return contexts[slug] || 'Historical context for this timeline is being researched...'
 }
-

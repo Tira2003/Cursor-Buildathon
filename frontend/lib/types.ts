@@ -16,6 +16,7 @@ export interface Incident {
   description?: string
   context?: string
   image?: string
+  exampleWhatIfs?: string[]
 }
 
 export interface StoryCard {
@@ -26,6 +27,8 @@ export interface StoryCard {
   imagePrompt: string
   image?: string
   isAlternate: boolean
+  simulationId?: string
+  eventIndex?: number
 }
 
 export interface Branch {
@@ -93,6 +96,24 @@ export interface StabilizeResult {
   success: boolean
   finalChaos: number
   message: string
+}
+
+export type UserSimulationStatus = 'phase1' | 'ready' | 'published' | 'generating'
+
+export interface UserSimulationSummary {
+  id: string
+  whatIf: string
+  chaosScore: number
+  status: UserSimulationStatus
+  updatedAt: string
+}
+
+export interface UserProfile {
+  email: string
+  displayName: string
+  stabilizeWins: number
+  chaosPublished: number
+  simulationsCount: number
 }
 
 export interface PublishedTimeline {

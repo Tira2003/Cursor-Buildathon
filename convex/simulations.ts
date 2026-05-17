@@ -27,6 +27,9 @@ const simulationDoc = v.object({
   relicPrompt: v.optional(v.string()),
   relicImageId: v.optional(v.id("_storage")),
   relicImageUrl: v.optional(v.string()),
+  museumArtifactImageUrl: v.optional(v.string()),
+  museumArtifactName: v.optional(v.string()),
+  museumArtifactDescription: v.optional(v.string()),
   isChaotic: v.optional(v.boolean()),
   status: v.string(),
   visibility: v.string(),
@@ -104,7 +107,37 @@ export const get = query({
     const relicImageUrl = sim.relicImageId
       ? await ctx.storage.getUrl(sim.relicImageId)
       : undefined;
-    return mapSimulationDoc(sim, relicImageUrl ?? undefined);
+
+    const events = await Promise.all(
+      sim.events.map(async (ev) => {
+        if (!ev.imageStorageId) return ev;
+        const imageUrl = await ctx.storage.getUrl(ev.imageStorageId);
+        return imageUrl ? { ...ev, imageUrl } : ev;
+      }),
+    );
+
+    let museum:
+      | { artifactImageUrl?: string; artifactName?: string; artifactDescription?: string }
+      | undefined;
+    if (sim.museumScanId) {
+      const scan = await ctx.db.get(sim.museumScanId);
+      if (scan) {
+        const artifactImageUrl =
+          (await ctx.storage.getUrl(scan.artifactImageId)) ?? undefined;
+        museum = {
+          artifactImageUrl,
+          artifactName: scan.extractedArtifactName,
+          artifactDescription:
+            scan.extractedLabelText ?? scan.historicalContext ?? undefined,
+        };
+      }
+    }
+
+    return mapSimulationDoc(
+      { ...sim, events },
+      relicImageUrl ?? undefined,
+      museum,
+    );
   },
 });
 

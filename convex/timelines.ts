@@ -1,30 +1,77 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { resolveIncidentRelatedImageUrl } from "./lib/resolveIncidentImageUrl";
+
+const timelineListItem = v.object({
+  _id: v.id("predefinedTimelines"),
+  title: v.string(),
+  slug: v.string(),
+  summary: v.string(),
+  coverImageUrl: v.string(),
+  startYear: v.number(),
+  endYear: v.number(),
+});
 
 export const list = query({
   args: {},
   returns: v.array(
-    v.object({
-      _id: v.id("predefinedTimelines"),
-      title: v.string(),
-      slug: v.string(),
-      summary: v.string(),
-      coverImageUrl: v.string(),
-      startYear: v.number(),
-      endYear: v.number(),
+    timelineListItem.extend({
+      incidentCount: v.number(),
     }),
   ),
   handler: async (ctx) => {
     const timelines = await ctx.db.query("predefinedTimelines").collect();
-    return timelines.map((t) => ({
-      _id: t._id,
-      title: t.title,
-      slug: t.slug,
-      summary: t.summary,
-      coverImageUrl: t.coverImageUrl,
-      startYear: t.startYear,
-      endYear: t.endYear,
-    }));
+    return await Promise.all(
+      timelines.map(async (t) => {
+        const incidents = await ctx.db
+          .query("timelineIncidents")
+          .withIndex("by_timeline_order", (q) => q.eq("timelineId", t._id))
+          .collect();
+        return {
+          _id: t._id,
+          title: t.title,
+          slug: t.slug,
+          summary: t.summary,
+          coverImageUrl: t.coverImageUrl,
+          startYear: t.startYear,
+          endYear: t.endYear,
+          incidentCount: incidents.length,
+        };
+      }),
+    );
+  },
+});
+
+export const listFeatured = query({
+  args: { limit: v.optional(v.number()) },
+  returns: v.array(
+    timelineListItem.extend({
+      incidentCount: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 3;
+    const timelines = await ctx.db.query("predefinedTimelines").collect();
+    const featured = timelines.slice(0, limit);
+
+    return await Promise.all(
+      featured.map(async (t) => {
+        const incidents = await ctx.db
+          .query("timelineIncidents")
+          .withIndex("by_timeline_order", (q) => q.eq("timelineId", t._id))
+          .collect();
+        return {
+          _id: t._id,
+          title: t.title,
+          slug: t.slug,
+          summary: t.summary,
+          coverImageUrl: t.coverImageUrl,
+          startYear: t.startYear,
+          endYear: t.endYear,
+          incidentCount: incidents.length,
+        };
+      }),
+    );
   },
 });
 
@@ -51,6 +98,7 @@ export const getBySlug = query({
           relatedImageUrl: v.optional(v.string()),
           realOutcome: v.string(),
           order: v.number(),
+          exampleWhatIfs: v.optional(v.array(v.string())),
         }),
       ),
     }),
@@ -69,16 +117,19 @@ export const getBySlug = query({
       .withIndex("by_timeline_order", (q) => q.eq("timelineId", timeline._id))
       .collect();
 
-    const mappedIncidents = incidents.map((inc) => ({
-      _id: inc._id,
-      year: inc.year,
-      title: inc.title,
-      description: inc.description,
-      location: inc.location,
-      relatedImageUrl: inc.relatedImageUrl,
-      realOutcome: inc.realOutcome,
-      order: inc.order,
-    }));
+    const mappedIncidents = await Promise.all(
+      incidents.map(async (inc) => ({
+        _id: inc._id,
+        year: inc.year,
+        title: inc.title,
+        description: inc.description,
+        location: inc.location,
+        relatedImageUrl: await resolveIncidentRelatedImageUrl(ctx, inc),
+        realOutcome: inc.realOutcome,
+        order: inc.order,
+        exampleWhatIfs: inc.exampleWhatIfs,
+      })),
+    );
 
     return {
       timeline: {

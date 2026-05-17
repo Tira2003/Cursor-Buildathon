@@ -1,4 +1,5 @@
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+import { resolveIncidentImage, resolveTimelineCoverImage } from "@/lib/timeline-images";
 import type {
   Branch,
   Incident,
@@ -28,6 +29,7 @@ type ConvexIncident = {
   relatedImageUrl?: string;
   realOutcome: string;
   order: number;
+  exampleWhatIfs?: string[];
 };
 
 type ConvexSimulation = ReturnType<typeof mapSimInput>;
@@ -47,7 +49,19 @@ function mapSimInput(sim: {
   gainedByHumanity?: string[];
   relicPrompt?: string;
   relicImageUrl?: string;
-  events: { year: string; title: string; description: string }[];
+  museumArtifactImageUrl?: string;
+  museumArtifactName?: string;
+  museumArtifactDescription?: string;
+  selectedDurationLabel?: string;
+  source?: string;
+  events: {
+    year: string;
+    title: string;
+    description: string;
+    impactLevel?: "low" | "medium" | "high";
+    imageUrl?: string;
+    imageStorageId?: string;
+  }[];
   createdAt: number;
 }) {
   return sim;
@@ -84,7 +98,7 @@ export function mapTimelineListItem(t: ConvexTimeline): Timeline {
     slug: t.slug,
     title: t.title,
     era: `${t.startYear}–${t.endYear}`,
-    coverImage: t.coverImageUrl,
+    coverImage: resolveTimelineCoverImage(t.slug, t.coverImageUrl),
     description: t.summary,
     incidents: [],
   };
@@ -96,18 +110,21 @@ export function mapTimelineDetail(
 ): Timeline {
   return {
     ...mapTimelineListItem(timeline),
-    incidents: incidents.map(mapIncident),
+    incidents: incidents.map((inc) => mapIncident(inc, timeline.slug)),
   };
 }
 
-export function mapIncident(inc: ConvexIncident): Incident {
+export function mapIncident(inc: ConvexIncident, timelineSlug?: string): Incident {
   return {
     id: inc._id,
     title: inc.title,
     date: inc.year,
     description: inc.description,
     context: inc.realOutcome,
-    image: inc.relatedImageUrl,
+    image: timelineSlug
+      ? resolveIncidentImage(timelineSlug, inc.relatedImageUrl)
+      : inc.relatedImageUrl,
+    exampleWhatIfs: inc.exampleWhatIfs,
   };
 }
 
@@ -126,13 +143,32 @@ export function mapSimulationToUi(
 
   const ripples = [...immediate, ...generational].map(formatRipple);
 
-  const storyCards: StoryCard[] = [
-    ...immediate.map((ev, i) => eventToStoryCard(ev, `imm-${i}`, true)),
-    ...generational.map((ev, i) => eventToStoryCard(ev, `gen-${i}`, true)),
-    ...(sim.globalConsequence ?? []).map((ev, i) =>
-      eventToStoryCard(ev, `glob-${i}`, true),
-    ),
-  ];
+  const fallbackImage =
+    sim.relicImageUrl ?? sim.museumArtifactImageUrl ?? undefined;
+
+  const storyCards: StoryCard[] =
+    sim.source === "museum" && sim.events.length > 0
+      ? sim.events.map((ev, i) =>
+          eventToStoryCard(
+            ev,
+            `evt-${i}`,
+            true,
+            ev.imageUrl ?? (i === 0 ? fallbackImage : undefined),
+            sim._id,
+            i,
+          ),
+        )
+      : [
+          ...immediate.map((ev, i) =>
+            eventToStoryCard(ev, `imm-${i}`, true, ev.imageUrl ?? fallbackImage),
+          ),
+          ...generational.map((ev, i) =>
+            eventToStoryCard(ev, `gen-${i}`, true, ev.imageUrl ?? fallbackImage),
+          ),
+          ...(sim.globalConsequence ?? []).map((ev, i) =>
+            eventToStoryCard(ev, `glob-${i}`, true, ev.imageUrl ?? fallbackImage),
+          ),
+        ];
 
   const branches: Branch[] = (sim.branchChoices ?? []).map((b) => ({
     id: b.id,
@@ -156,7 +192,11 @@ export function mapSimulationToUi(
   return {
     id: sim._id,
     incidentId: sim.changedIncidentId ?? incident?._id ?? "",
-    whatIf: sim.whatIfPrompt ?? "",
+    whatIf:
+      sim.whatIfPrompt ??
+      (sim.museumArtifactName
+        ? `What if history unfolded across ${sim.selectedDurationLabel ?? "this span"} starting from the ${sim.museumArtifactName}?`
+        : ""),
     chaosScore: sim.chaosScore ?? 0,
     status: mapConvexStatus(sim.status),
     ripples,
@@ -172,9 +212,12 @@ export function mapSimulationToUi(
 }
 
 function eventToStoryCard(
-  ev: { year: string; title: string; description: string },
+  ev: { year: string; title: string; description: string; imageUrl?: string },
   id: string,
   isAlternate: boolean,
+  image?: string,
+  simulationId?: string,
+  eventIndex?: number,
 ): StoryCard {
   return {
     id,
@@ -182,7 +225,10 @@ function eventToStoryCard(
     title: ev.title,
     description: ev.description,
     imagePrompt: ev.title,
+    image: ev.imageUrl ?? image,
     isAlternate,
+    simulationId,
+    eventIndex,
   };
 }
 

@@ -100,4 +100,3 @@ export function BranchChoice({ branches, onSelect, selectedBranch }: BranchChoic
     </div>
   )
 }
-
