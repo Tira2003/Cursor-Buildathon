@@ -9,23 +9,27 @@ export const get = query({
     simulationCount: v.number(),
   }),
   handler: async (ctx) => {
-    const [published, simulations] = await Promise.all([
+    const [published, publicSimulations, allSimulations] = await Promise.all([
       ctx.db.query("publishedTimelines").collect(),
+      ctx.db
+        .query("simulations")
+        .withIndex("by_visibility_created", (q) => q.eq("visibility", "public"))
+        .collect(),
       ctx.db.query("simulations").collect(),
     ]);
 
     const contributorIds = new Set<string>();
-    for (const sim of simulations) {
-      contributorIds.add(sim.userId);
-    }
     for (const pub of published) {
       contributorIds.add(pub.authorId);
+    }
+    for (const sim of publicSimulations) {
+      contributorIds.add(sim.userId);
     }
 
     return {
       timelineCount: published.length,
       contributorCount: contributorIds.size,
-      simulationCount: simulations.length,
+      simulationCount: allSimulations.length,
     };
   },
 });

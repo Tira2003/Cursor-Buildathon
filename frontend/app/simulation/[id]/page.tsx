@@ -7,7 +7,7 @@ interface SimulationPageProps {
 
 export default async function SimulationPage({ params }: SimulationPageProps) {
   const { id } = await params
-  
+
   return (
     <Suspense fallback={
       <div className="fixed inset-0 bg-background flex items-center justify-center">

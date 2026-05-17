@@ -221,6 +221,23 @@ export const save = mutation({
   },
 });
 
+/** Lets anyone with the link view this simulation (used when sharing). */
+export const makePublic = mutation({
+  args: { simulationId: v.id("simulations") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const sim = await ctx.db.get(args.simulationId);
+    if (!sim || sim.userId !== userId) throw new Error("Not found");
+
+    await ctx.db.patch(args.simulationId, {
+      visibility: "public",
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
 export const setGenerating = mutation({
   args: { simulationId: v.id("simulations") },
   returns: v.null(),

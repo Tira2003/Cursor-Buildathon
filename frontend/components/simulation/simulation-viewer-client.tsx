@@ -29,7 +29,12 @@ import { AuroraLoadingScreen } from '@/components/simulation/aurora-loading-scre
 import { BranchChoice } from '@/components/simulation/branch-choice'
 import { mapConvexStatus, mapIncident, mapSimulationToUi } from '@/lib/convex-ui'
 import { useDemoMode } from '@/lib/useDemoMode'
+import { useAuth } from '@/lib/use-auth'
+import { shareSimulationLink } from '@/lib/share-simulation'
+import { isConvexSimulationId, isMockSimulationId } from '@/lib/simulation-id'
+import { getIncidentById, getSimulationById } from '@/lib/mock-data'
 import type { SimulationStatus } from '@/lib/types'
+import { toast } from 'sonner'
 
 interface SimulationViewerClientProps {
   simulationId: string
@@ -42,9 +47,15 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
   const demo = useDemoMode()
   const detailsRef = useRef<HTMLDivElement>(null)
 
-  const convexSim = useQuery(api.simulations.get, {
-    simulationId: simulationId as Id<'simulations'>,
-  })
+  const convexId = isConvexSimulationId(simulationId)
+  const mockId = isMockSimulationId(simulationId)
+
+  const convexSim = useQuery(
+    api.simulations.get,
+    convexId
+      ? { simulationId: simulationId as Id<'simulations'> }
+      : 'skip',
+  )
   const incidentCtx = useQuery(
     api.incidents.get,
     convexSim?.changedIncidentId
@@ -52,12 +63,19 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
       : 'skip',
   )
   const selectBranch = useMutation(api.simulations.selectBranch)
+  const saveSimulation = useMutation(api.simulations.save)
+  const makeSimulationPublic = useMutation(api.simulations.makePublic)
   const generatePhaseTwo = useAction(api.actions.generatePhaseTwo.run)
   const generateRelicImage = useAction(api.actions.generateRelicImage.run)
   const fetchSimulationImages = useAction(
     api.actions.fetchSimulationEventImages.fetchForSimulation,
   )
   const [phase2Loading, setPhase2Loading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
+  const { loggedIn, mounted: authMounted } = useAuth()
+
+  const mockSim = mockId ? getSimulationById(simulationId) : undefined
 
   const mappedIncident = incidentCtx
     ? mapIncident(incidentCtx.incident, incidentCtx.timeline.slug)
@@ -65,18 +83,84 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
 
   const simulation = convexSim
     ? mapSimulationToUi(convexSim, mappedIncident)
-    : null
+    : mockSim
+      ? { ...mockSim, whatIf: whatIfParam ?? mockSim.whatIf }
+      : null
   const status: SimulationStatus = convexSim
     ? phase2Loading
       ? 'phase2_generating'
       : mapConvexStatus(convexSim.status)
-    : 'generating'
+    : mockSim
+      ? mapConvexStatus(mockSim.status)
+      : 'generating'
 
   const remixHref = `/simulation/${simulationId}/remix${
     whatIfParam ? `?whatIf=${encodeURIComponent(whatIfParam)}` : ''
   }`
 
   const goToRemix = () => router.push(remixHref)
+
+  const signInRedirect = `/signin?redirect=${encodeURIComponent(`/simulation/${simulationId}`)}`
+  const isSaved =
+    convexSim?.status === 'saved' || convexSim?.status === 'published'
+
+  const handleSave = async () => {
+    if (!convexId) {
+      toast.info('Demo timelines are preview-only — run a simulation from Browse Timelines to save.')
+      return
+    }
+    if (!authMounted) return
+    if (!loggedIn) {
+      router.push(signInRedirect)
+      return
+    }
+    if (isSaved) {
+      toast.info('Already saved to My Timelines')
+      return
+    }
+    setIsSaving(true)
+    try {
+      await saveSimulation({
+        simulationId: simulationId as Id<'simulations'>,
+      })
+      toast.success('Saved to My Timelines')
+    } catch {
+      toast.error('Could not save. Sign in and try again.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleShare = async (shareTitle: string) => {
+    setIsSharing(true)
+    try {
+      if (loggedIn) {
+        try {
+          await makeSimulationPublic({
+            simulationId: simulationId as Id<'simulations'>,
+          })
+        } catch {
+          // Non-owners cannot make public; still share URL for their own copy
+        }
+      }
+      const result = await shareSimulationLink({
+        simulationId,
+        title: shareTitle,
+      })
+      if (result === 'shared') {
+        toast.success('Shared!')
+      } else if (!loggedIn) {
+        toast.success('Link copied — sign in so others can open it')
+      } else {
+        toast.success('Link copied to clipboard')
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      toast.error('Could not share. Copy the URL from your browser.')
+    } finally {
+      setIsSharing(false)
+    }
+  }
 
   useEffect(() => {
     if (
@@ -136,7 +220,7 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
     }
   }
   
-  if (convexSim === null) {
+  if ((convexId && convexSim === null) || (mockId && !mockSim)) {
     return (
       <div className="min-h-screen bg-background px-6 pt-24">
         <p className="text-foreground">Simulation not found or private.</p>
@@ -144,7 +228,7 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
     )
   }
 
-  if (convexSim === undefined || !simulation) {
+  if ((convexId && convexSim === undefined) || !simulation) {
     return (
       <AuroraLoadingScreen
         whatIfPrompt={whatIfParam || simulation?.whatIf || 'Generating alternate timeline...'}
@@ -152,9 +236,15 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
     )
   }
 
+  const mockIncident = mockSim ? getIncidentById(mockSim.incidentId) : undefined
   const incidentData = incidentCtx
     ? { timeline: { title: incidentCtx.timeline.title }, incident: { date: incidentCtx.incident.year, title: incidentCtx.incident.title } }
-    : null
+    : mockIncident
+      ? {
+          timeline: { title: mockIncident.timeline.title },
+          incident: { date: mockIncident.incident.date, title: mockIncident.incident.title },
+        }
+      : null
 
   const showBranchChoice =
     status === 'phase1_complete' &&
@@ -166,12 +256,12 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
   const needsStabilization = simulation.chaosScore >= 40
   const displayWhatIf =
     simulation.whatIf ||
-    (convexSim.museumArtifactName
+    (convexSim?.museumArtifactName
       ? `What if history unfolded across ${convexSim.selectedDurationLabel ?? 'this span'} starting from the ${convexSim.museumArtifactName}?`
       : 'Alternate history from the museum artifact')
-  const museumDescription = convexSim.museumArtifactDescription
+  const museumDescription = convexSim?.museumArtifactDescription
   const relicImageUrl =
-    simulation.relicImage ?? convexSim.museumArtifactImageUrl
+    simulation.relicImage ?? convexSim?.museumArtifactImageUrl
   
   return (
     <div className="min-h-screen bg-background">
@@ -181,9 +271,12 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
           cards={simulation.storyCards!}
           whatIf={displayWhatIf}
           onScrollToDetails={scrollToDetails}
-          onShare={() => console.log('Share')}
-          onSave={() => console.log('Save')}
+          onShare={() => void handleShare(displayWhatIf)}
+          onSave={() => void handleSave()}
           onRemix={goToRemix}
+          isSaved={isSaved}
+          isSaving={isSaving}
+          isSharing={isSharing}
         />
       )}
 
@@ -247,11 +340,25 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
 
               {/* Right side actions */}
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="lg" className="h-11 w-11 p-0">
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  className="h-11 w-11 p-0"
+                  disabled={isSharing}
+                  onClick={() => void handleShare(displayWhatIf)}
+                  aria-label="Share simulation"
+                >
                   <Share2 className="w-5 h-5" />
                 </Button>
-                <Button variant="ghost" size="lg" className="h-11 w-11 p-0">
-                  <Bookmark className="w-5 h-5" />
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  className="h-11 w-11 p-0"
+                  disabled={isSaving || isSaved}
+                  onClick={() => void handleSave()}
+                  aria-label={isSaved ? 'Simulation saved' : 'Save simulation'}
+                >
+                  <Bookmark className={isSaved ? 'fill-current' : undefined} />
                 </Button>
                 <Button
                   size="lg"
@@ -279,9 +386,9 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
                     {incidentData.timeline.title} &middot; {incidentData.incident.date}
                   </p>
                 )}
-                {convexSim.museumArtifactName && !incidentData && (
+                {convexSim?.museumArtifactName && !incidentData && (
                   <p className="text-sm text-muted-foreground mb-2">
-                    Museum artifact &middot; {convexSim.selectedDurationLabel ?? 'Alternate span'}
+                    Museum artifact &middot; {convexSim?.selectedDurationLabel ?? 'Alternate span'}
                   </p>
                 )}
                 <h1 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-4 break-words">
@@ -369,23 +476,29 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
                 </div>
               </div>
               <div className="rounded-2xl border border-border bg-card p-8 min-w-0">
-                {convexSim.events.length > 0 ? (
+                {convexSim && convexSim.events.length > 0 ? (
                   <EditableTimelineEvents
                     simulationId={simulationId as Id<'simulations'>}
                     events={convexSim.events}
                   />
+                ) : mockSim && mockSim.ripples.length > 0 ? (
+                  <ul className="space-y-3 text-sm text-muted-foreground list-disc pl-5">
+                    {mockSim.ripples.map((ripple) => (
+                      <li key={ripple}>{ripple}</li>
+                    ))}
+                  </ul>
                 ) : (
                   <p className="text-sm text-muted-foreground">No timeline events yet.</p>
                 )}
               </div>
             </div>
 
-            {convexSim.source === 'museum' && (
+            {convexSim?.source === 'museum' && (
               <div className="mb-12">
                 <RelicImage
                   imageUrl={relicImageUrl}
                   prompt={simulation.relicPrompt}
-                  altText={convexSim.museumArtifactName ?? 'Museum artifact'}
+                  altText={convexSim?.museumArtifactName ?? 'Museum artifact'}
                 />
               </div>
             )}

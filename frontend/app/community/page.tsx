@@ -9,54 +9,6 @@ import { Header } from '@/components/layout/header'
 
 const PixelBlast = dynamic(() => import('@/components/visuals/pixel-blast'), { ssr: false })
 
-const communityTimelines = [
-  {
-    id: 'c1',
-    author: 'HistoryBuff_42',
-    whatIf: 'What if the Cuban Missile Crisis escalated into full nuclear war?',
-    timeline: 'Cold War',
-    chaosScore: 94,
-    likes: 312,
-    updatedAt: '2026-05-14',
-  },
-  {
-    id: 'c2',
-    author: 'AltHistorian',
-    whatIf: 'What if the Archduke survived the assassination attempt?',
-    timeline: 'World War I',
-    chaosScore: 61,
-    likes: 189,
-    updatedAt: '2026-05-12',
-  },
-  {
-    id: 'c3',
-    author: 'TimeTraveler99',
-    whatIf: 'What if the Soviet Union won the Space Race?',
-    timeline: 'Cold War',
-    chaosScore: 48,
-    likes: 145,
-    updatedAt: '2026-05-10',
-  },
-  {
-    id: 'c4',
-    author: 'ChronoSage',
-    whatIf: 'What if Napoleon won at Waterloo?',
-    timeline: 'Napoleonic Wars',
-    chaosScore: 79,
-    likes: 267,
-    updatedAt: '2026-05-08',
-  },
-  {
-    id: 'c5',
-    author: 'ParadoxEngine',
-    whatIf: 'What if the Berlin Wall never fell?',
-    timeline: 'Cold War',
-    chaosScore: 55,
-    likes: 201,
-    updatedAt: '2026-05-06',
-  },
-]
-
 function chaosBadgeColor(score: number) {
   if (score >= 80) return 'text-red-400 bg-red-400/10 border-red-400/20'
   if (score >= 50) return 'text-amber-400 bg-amber-400/10 border-amber-400/20'
@@ -64,12 +16,21 @@ function chaosBadgeColor(score: number) {
 }
 
 function formatCount(value: number | undefined): string {
-  if (value === undefined) return '—'
+  if (value === undefined) return '…'
   return value.toLocaleString()
+}
+
+function formatPublishedDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 export default function CommunityPage() {
   const stats = useQuery(api.communityStats.get)
+  const feed = useQuery(api.published.listPublic)
 
   const statCards = [
     { icon: GitBranch, label: 'Timelines', value: stats?.timelineCount },
@@ -146,12 +107,27 @@ export default function CommunityPage() {
                 <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
                   Trending this week
                 </h2>
+                {feed !== undefined && (
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {feed.length} published
+                  </span>
+                )}
               </div>
 
-              {communityTimelines.map((item) => (
+              {feed === undefined && (
+                <p className="text-sm text-muted-foreground">Loading timelines…</p>
+              )}
+
+              {feed?.length === 0 && (
+                <p className="text-sm text-muted-foreground rounded-xl border border-white/10 bg-black/30 backdrop-blur-md p-5">
+                  No published timelines yet. Finish a simulation and publish it to appear here.
+                </p>
+              )}
+
+              {feed?.map((item) => (
                 <Link
-                  key={item.id}
-                  href={`/simulation/${item.id}`}
+                  key={item._id}
+                  href={`/simulation/${item.simulationId}`}
                   className="block rounded-xl border border-white/10 bg-black/30 backdrop-blur-md p-5 hover:border-primary/40 hover:bg-black/40 transition-all"
                 >
                   <div className="flex items-start gap-4">
@@ -161,20 +137,23 @@ export default function CommunityPage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-muted-foreground">{item.author}</span>
+                        <span className="text-xs text-muted-foreground">{item.authorName ?? 'Historian'}</span>
                         <span className="text-muted-foreground/40">·</span>
-                        <span className="text-xs text-muted-foreground">{item.timeline}</span>
+                        <span className="text-xs text-muted-foreground">{formatPublishedDate(item.createdAt)}</span>
                       </div>
-                      <p className="font-medium text-foreground mb-3 line-clamp-2">
-                        &ldquo;{item.whatIf}&rdquo;
+                      <p className="font-medium text-foreground mb-1 line-clamp-2">
+                        {item.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                        {item.description}
                       </p>
                       <div className="flex items-center gap-3">
                         <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${chaosBadgeColor(item.chaosScore)}`}>
                           Chaos {item.chaosScore}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          ♥ {item.likes} likes
-                        </span>
+                        {item.isChaotic && (
+                          <span className="text-xs text-red-400/90">Unstable timeline</span>
+                        )}
                       </div>
                     </div>
                   </div>

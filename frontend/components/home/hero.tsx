@@ -1,27 +1,38 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Image from 'next/image'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Camera, BookOpen, ChevronDown } from 'lucide-react'
 
-const HERO_IMAGE = '/images/hero/alternate-timelines.jpg'
+const HERO_VIDEO = '/Landing.mp4'
+const HERO_POSTER = '/images/hero/alternate-timelines.jpg'
 
 export function Hero() {
   const [mounted, setMounted] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+    const video = videoRef.current
+    if (!video) return
+    void video.play().catch(() => {
+      // Autoplay may be blocked until user interaction; poster still shows.
+    })
+  }, [])
 
   return (
     <section className="relative w-full min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background image */}
-      <Image
-        src={HERO_IMAGE}
-        alt="Roman legions facing modern soldiers across an alternate timeline battlefield"
-        fill
-        priority
-        className="object-cover object-center"
-        sizes="100vw"
+      <video
+        ref={videoRef}
+        className="absolute inset-0 h-full w-full object-cover object-center"
+        src={HERO_VIDEO}
+        poster={HERO_POSTER}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        aria-hidden
       />
 
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/65 to-black/40" />

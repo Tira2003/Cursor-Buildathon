@@ -1,8 +1,8 @@
 'use client'
 
-import { useAction, useQuery } from 'convex/react'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useAction, useConvexAuth, useQuery } from 'convex/react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Calendar } from 'lucide-react'
 import { api } from '@/convex/_generated/api'
@@ -14,10 +14,19 @@ import { useDemoMode } from '@/lib/useDemoMode'
 
 function generationErrorMessage(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err)
-  if (msg.includes('429') || msg.includes('quota')) {
-    return 'Gemini quota exceeded. Retry later, add an API key in Convex, or use ?demo=1 in the URL.'
+  if (msg.includes('Not authenticated')) {
+    return 'Sign in to generate alternate timelines. Your what-if will be kept in the URL after you log in.'
   }
-  return 'Generation failed. Try again or add ?demo=1 to the URL.'
+  if (msg.includes('GROQ_API_KEY')) {
+    return 'AI is not configured on this deployment. Try ?demo=1 in the URL for offline demo data.'
+  }
+  if (msg.includes('429') || msg.includes('quota') || msg.includes('rate limit')) {
+    return 'AI quota exceeded. Retry later or add ?demo=1 to the URL for demo fixtures.'
+  }
+  if (msg.includes('at least 5 characters')) {
+    return 'Your what-if must be at least 5 characters.'
+  }
+  return `Generation failed: ${msg}`
 }
 
 interface SimulatePageClientProps {
@@ -26,10 +35,19 @@ interface SimulatePageClientProps {
 
 export function SimulatePageClient({ incidentId }: SimulatePageClientProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth()
   const demo = useDemoMode()
   const timelineIdParam = searchParams.get('timelineId')
   const whatIfParam = searchParams.get('whatIf') ?? ''
+
+  const returnTo = useMemo(() => {
+    const qs = searchParams.toString()
+    return qs ? `${pathname}?${qs}` : pathname
+  }, [pathname, searchParams])
+
+  const signInHref = `/signin?redirect=${encodeURIComponent(returnTo)}`
   const data = useQuery(api.incidents.get, {
     incidentId: incidentId as Id<'timelineIncidents'>,
   })
@@ -63,13 +81,14 @@ export function SimulatePageClient({ incidentId }: SimulatePageClientProps) {
   )
 
   useEffect(() => {
+    if (authLoading || !isAuthenticated) return
     if (data === undefined || data === null) return
     const prompt = whatIfParam.trim()
     if (!prompt) return
     if (startedRef.current) return
     startedRef.current = true
     void runGenerate(prompt)
-  }, [data, whatIfParam, runGenerate])
+  }, [authLoading, isAuthenticated, data, whatIfParam, runGenerate])
 
   if (data === undefined) {
     return (
@@ -94,6 +113,52 @@ export function SimulatePageClient({ incidentId }: SimulatePageClientProps) {
 
   const { timeline, incident } = incidentContextFromConvex(data.timeline, data.incident)
   const prompt = whatIfParam.trim()
+
+  if (!authLoading && !isAuthenticated) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <main className="pt-24 pb-16 px-6">
+          <div className="mx-auto max-w-2xl">
+            <Link
+              href="/timelines"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Timelines
+            </Link>
+
+            <div className="rounded-lg border border-border bg-card p-6 mb-6">
+              <h1 className="font-serif text-2xl font-semibold text-foreground mb-2">
+                Sign in to simulate
+              </h1>
+              <p className="text-muted-foreground mb-4">
+                Generating alternate timelines requires an account.
+              </p>
+              <p className="text-sm text-muted-foreground/90 italic border-l-2 border-primary/40 pl-3">
+                &ldquo;{prompt}&rdquo;
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                href={signInHref}
+                className="flex-1 inline-flex justify-center items-center h-11 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90"
+              >
+                Sign in
+              </Link>
+              <Link
+                href={`/signup?redirect=${encodeURIComponent(returnTo)}`}
+                className="flex-1 inline-flex justify-center items-center h-11 rounded-lg border border-border text-sm font-medium hover:bg-muted/50"
+              >
+                Create account
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   if (!prompt) {
     return (
@@ -153,16 +218,26 @@ export function SimulatePageClient({ incidentId }: SimulatePageClientProps) {
           {error && (
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-6 space-y-4">
               <p className="text-sm text-destructive">{error}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  startedRef.current = true
-                  void runGenerate(prompt)
-                }}
-                className="text-sm text-primary font-medium hover:underline"
-              >
-                Try again
-              </button>
+              <div className="flex flex-wrap gap-4">
+                {!isAuthenticated && (
+                  <Link
+                    href={signInHref}
+                    className="text-sm text-primary font-medium hover:underline"
+                  >
+                    Sign in
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    startedRef.current = true
+                    void runGenerate(prompt)
+                  }}
+                  className="text-sm text-primary font-medium hover:underline"
+                >
+                  Try again
+                </button>
+              </div>
             </div>
           )}
         </div>

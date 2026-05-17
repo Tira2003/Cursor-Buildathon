@@ -8,7 +8,22 @@ function normalizeEmail(email: string): string {
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
-    Google,
+    Google({
+      profile(profile) {
+        const email = profile.email?.trim();
+        if (!email) {
+          throw new Error("Google account did not provide an email address");
+        }
+        const doc: { email: string; name?: string; image?: string } = {
+          email: normalizeEmail(email),
+        };
+        const name = profile.name?.trim();
+        if (name) doc.name = name;
+        const image = profile.picture?.trim();
+        if (image) doc.image = image;
+        return doc;
+      },
+    }),
     Password({
       profile(params) {
         const email = normalizeEmail(params.email as string);

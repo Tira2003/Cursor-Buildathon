@@ -8,6 +8,7 @@ import { api } from '@/convex/_generated/api'
 import type { Id } from '@/convex/_generated/dataModel'
 import { HistoricalImage } from '@/components/ui/historical-image'
 import type { StoryCard } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 interface FullscreenStoryViewerProps {
   cards: StoryCard[]
@@ -16,6 +17,9 @@ interface FullscreenStoryViewerProps {
   onShare?: () => void
   onSave?: () => void
   onRemix?: () => void
+  isSaved?: boolean
+  isSaving?: boolean
+  isSharing?: boolean
 }
 
 export function FullscreenStoryViewer({ 
@@ -24,7 +28,10 @@ export function FullscreenStoryViewer({
   onScrollToDetails,
   onShare,
   onSave,
-  onRemix 
+  onRemix,
+  isSaved = false,
+  isSaving = false,
+  isSharing = false,
 }: FullscreenStoryViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isHovering, setIsHovering] = useState(false)
@@ -175,18 +182,26 @@ export function FullscreenStoryViewer({
           {/* Frosted Action Buttons - Top Right */}
           <div className="flex items-center gap-3">
             <button
-              onClick={onShare}
-              className="flex items-center gap-2 px-5 py-3 rounded-full bg-card/60 backdrop-blur-md border border-border/50 text-foreground hover:bg-card/80 transition-all hover:scale-105 active:scale-95"
+              type="button"
+              onClick={() => onShare?.()}
+              disabled={!onShare || isSharing}
+              className="flex items-center gap-2 px-5 py-3 rounded-full bg-card/60 backdrop-blur-md border border-border/50 text-foreground hover:bg-card/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
             >
               <Share2 className="w-5 h-5" />
-              <span className="text-sm font-medium hidden sm:inline">Share</span>
+              <span className="text-sm font-medium hidden sm:inline">
+                {isSharing ? "Sharing…" : "Share"}
+              </span>
             </button>
             <button
-              onClick={onSave}
-              className="flex items-center gap-2 px-5 py-3 rounded-full bg-card/60 backdrop-blur-md border border-border/50 text-foreground hover:bg-card/80 transition-all hover:scale-105 active:scale-95"
+              type="button"
+              onClick={() => onSave?.()}
+              disabled={!onSave || isSaving || isSaved}
+              className="flex items-center gap-2 px-5 py-3 rounded-full bg-card/60 backdrop-blur-md border border-border/50 text-foreground hover:bg-card/80 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
             >
-              <Bookmark className="w-5 h-5" />
-              <span className="text-sm font-medium hidden sm:inline">Save</span>
+              <Bookmark className={cn("w-5 h-5", isSaved && "fill-current")} />
+              <span className="text-sm font-medium hidden sm:inline">
+                {isSaving ? "Saving…" : isSaved ? "Saved" : "Save"}
+              </span>
             </button>
             <button
               onClick={onRemix}
