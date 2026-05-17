@@ -40,9 +40,24 @@ function mapSimInput(sim: {
   whatIfPrompt?: string;
   chaosScore?: number;
   status: string;
-  immediateRipple?: { year: string; title: string; description: string }[];
-  generationalShift?: { year: string; title: string; description: string }[];
-  globalConsequence?: { year: string; title: string; description: string }[];
+  immediateRipple?: {
+    year: string;
+    title: string;
+    description: string;
+    imageUrl?: string;
+  }[];
+  generationalShift?: {
+    year: string;
+    title: string;
+    description: string;
+    imageUrl?: string;
+  }[];
+  globalConsequence?: {
+    year: string;
+    title: string;
+    description: string;
+    imageUrl?: string;
+  }[];
   branchChoices?: { id: string; title: string; description: string }[];
   selectedBranchId?: string;
   lostToHistory?: string[];
@@ -130,7 +145,7 @@ export function mapIncident(inc: ConvexIncident, timelineSlug?: string): Inciden
 
 export function mapSimulationToUi(
   sim: ConvexSimulation,
-  incident?: ConvexIncident | null,
+  incident?: Incident | null,
 ): Simulation {
   const immediate =
     sim.immediateRipple?.length
@@ -215,7 +230,7 @@ export function mapSimulationToUi(
 
   return {
     id: sim._id,
-    incidentId: sim.changedIncidentId ?? incident?._id ?? "",
+    incidentId: sim.changedIncidentId ?? incident?.id ?? "",
     whatIf:
       sim.whatIfPrompt ??
       (sim.museumArtifactName

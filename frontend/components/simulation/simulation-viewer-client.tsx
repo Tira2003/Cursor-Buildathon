@@ -27,7 +27,7 @@ import { RelicImage } from '@/components/simulation/relic-image'
 import { FullscreenStoryViewer } from '@/components/simulation/fullscreen-story-viewer'
 import { AuroraLoadingScreen } from '@/components/simulation/aurora-loading-screen'
 import { BranchChoice } from '@/components/simulation/branch-choice'
-import { mapConvexStatus, mapSimulationToUi } from '@/lib/convex-ui'
+import { mapConvexStatus, mapIncident, mapSimulationToUi } from '@/lib/convex-ui'
 import { useDemoMode } from '@/lib/useDemoMode'
 import type { SimulationStatus } from '@/lib/types'
 
@@ -59,8 +59,12 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
   )
   const [phase2Loading, setPhase2Loading] = useState(false)
 
+  const mappedIncident = incidentCtx
+    ? mapIncident(incidentCtx.incident, incidentCtx.timeline.slug)
+    : null
+
   const simulation = convexSim
-    ? mapSimulationToUi(convexSim, incidentCtx?.incident ?? null)
+    ? mapSimulationToUi(convexSim, mappedIncident)
     : null
   const status: SimulationStatus = convexSim
     ? phase2Loading
