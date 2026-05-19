@@ -1,450 +1,350 @@
+<div align="center">
+
 # AltEra
-## Simulate the Unseen.
 
-**AltEra** is an AI-powered alternate history simulator where users change one specific historical incident and watch a new timeline unfold. The app is built around the butterfly effect: one small change in the past can reshape politics, technology, borders, culture, and the modern world.
+### Simulate the Unseen.
 
-Users begin with a predefined historical timeline such as **World War I** or **World War II**, select one real incident, enter a single-sentence "What if?" change, and receive an AI-generated alternate timeline with ripple effects, branching decisions, global consequences, and visual relics from the new reality.
+**Change one moment in history. Watch a new timeline unfold.**
 
-## Core Idea
+[![Live Demo](https://img.shields.io/badge/Live-altera--sepia.vercel.app-22c55e?logo=vercel)](https://altera-sepia.vercel.app/)
+[![Demo Video](https://img.shields.io/badge/Demo-YouTube-red?logo=youtube)](https://youtu.be/uXwTIhtESJk)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
+[![Convex](https://img.shields.io/badge/Convex-Realtime-ff5e3a)](https://convex.dev/)
+[![Groq](https://img.shields.io/badge/Groq-LLM-orange)](https://groq.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 
-Instead of asking users to start from a blank page, TimeLens provides curated historical timelines with real incidents, short context briefings, related images, and actual outcomes.
+**[Try it live →](https://altera-sepia.vercel.app/)** · **[Watch the demo →](https://youtu.be/uXwTIhtESJk)**
 
-Example:
+</div>
 
-```txt
-Timeline: World War I
-Incident: Assassination of Archduke Franz Ferdinand, 1914
-What if: The assassin hesitates and the motorcade escapes Sarajevo.
-```
+---
 
-The AI then generates a structured alternate timeline:
+## Links
 
-- **Chaos Score**: how disruptive the change is.
-- **Immediate Ripple**: consequences within 1 to 5 years.
-- **Generational Shift**: consequences within 20 to 50 years.
-- **Branching Choices**: three possible social or political reactions.
-- **Global Consequence**: the 100+ year outcome after the user chooses a branch.
-- **Lost to History**: things that disappear from the original timeline.
-- **Gained by Humanity**: new inventions, nations, ideologies, or events created by the divergence.
-- **Relic Image Prompt**: a prompt for generating an alternate-history artifact or visual.
+| | |
+|---|---|
+| Live app   | <https://altera-sepia.vercel.app/> |
+| Demo video | <https://youtu.be/uXwTIhtESJk> |
 
-## Main Features
+---
 
-### 1. Historical Timeline Selection
+## Table of Contents
 
-Users select one predefined historical timeline, such as:
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Live Demo Flows](#live-demo-flows)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [Environment Variables](#environment-variables)
+- [Project Structure](#project-structure)
+- [Available Scripts](#available-scripts)
+- [Documentation](#documentation)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
 
-- World War I Timeline
-- World War II Timeline
-- Roman Empire Timeline
-- Industrial Revolution Timeline
-- Cold War Timeline
+---
 
-Each timeline contains real historical incidents with:
+## Overview
 
-- Title
-- Year or date
-- Location
-- Short description
-- Related image
-- Real historical outcome
-- Context briefing
+**AltEra** is an AI-powered alternate-history simulator built around the butterfly effect. Users pick a real historical incident (e.g. *the assassination of Archduke Franz Ferdinand, 1914*), enter a one-sentence **"What if?"** change, and the app generates a structured alternate timeline — complete with a chaos score, ripple effects, branching decisions, ledger of what's lost and gained, and a museum-style relic image from the new reality.
 
-### 2. Context Briefing
+The product blends three experiences:
 
-Before changing history, the app explains the real event and its stakes. This helps the user understand why the incident mattered and what consequences followed in real history.
+1. **Curated timelines** — start from a hand-curated incident.
+2. **Museum scan** — photograph a real artifact + its label and let vision AI seed the simulation.
+3. **Stabilize game** — repair a chaotic published timeline by picking corrective decisions until the chaos score drops below the win threshold.
 
-### 3. "What If?" Input
+All simulations are persisted in Convex with real-time subscriptions, so the global dashboard updates live as the community publishes new alternate realities.
 
-The user enters one short sentence describing the change.
+---
 
-Example:
+## Key Features
 
-```txt
-The courier carrying the battle orders gets lost in the fog.
-```
+- **Two-phase AI generation** — Phase 1 returns chaos score, immediate ripple, generational shift, and branch choices; Phase 2 returns global consequence, lost/gained ledgers, and a relic image prompt.
+- **Museum vision flow** — Upload artifact + label photos; Groq vision (Llama 4) extracts name, era, and context, then proposes simulation durations.
+- **Stabilize timeline game** — Pick corrective fixes to lower chaos below 40 and win.
+- **Editable timelines** — Users can refine generated events inline before publishing.
+- **Realtime global dashboard** — Public simulations stream in via Convex subscriptions.
+- **Remix** — Branch from any public simulation with a new "What if?".
+- **Demo Mode (`?demo=1`)** — Deterministic fixtures replace live LLM calls for safe presentations.
+- **Usage telemetry** — Per-user Groq + Serper token & cost tracking.
+- **Polished UI** — Framer Motion animations, OGL/Three.js aurora visuals, shadcn/ui + Tailwind v4.
 
-The input should be limited to one sentence to keep the AI focused and prevent overly complex prompts.
+---
 
-### 4. AI Timeline Generation
-
-The AI returns strict structured JSON so the frontend can render the result as a polished timeline.
-
-The first generation includes:
-
-- Chaos Score
-- Immediate Ripple
-- Generational Shift
-- Three branching choices
-
-### 5. Branching Decision
-
-After the generational shift, the app pauses and lets the user choose one of three possible directions. This turns the experience from a simple generator into an interactive simulation.
-
-### 6. Final Consequence Generation
-
-After the branch is selected, the AI generates:
-
-- Global Consequence
-- Lost to History
-- Gained by Humanity
-- Relic image prompt
-
-### 7. Relic Image Generation
-
-The app generates or displays an alternate-history relic image based on the AI prompt.
-
-Examples:
-
-- A museum photograph of a fictional treaty medal
-- A military uniform from an empire that never existed
-- A newspaper front page from an alternate 1940s
-- A schematic of alternate military technology
-- A portrait of a leader from the divergent timeline
-
-### 8. Global Multiverse Dashboard
-
-Published simulations appear on a live global dashboard. Other users can view public timelines and explore alternate realities created by the community.
-
-### 9. Publish, Download, Export, and Remix
-
-Users can publish their generated timelines. Other users can:
-
-- View public timelines
-- Download or export timelines
-- Remix a timeline
-- Change a different incident
-- Create a new branch from someone else's simulation
-
-## App Flow
+## Live Demo Flows
 
 ```mermaid
 flowchart TD
-    A["User opens the app"] --> B["Global Dashboard"]
-    B --> C["Select predefined historical timeline"]
-    C --> D["View context briefing"]
-    D --> E["View real timeline incidents"]
-    E --> F["Select one incident to change"]
-    F --> G["Enter one What If sentence"]
-    G --> H["AI generates first alternate timeline"]
-    H --> I["Chaos Score"]
-    H --> J["Immediate Ripple"]
-    H --> K["Generational Shift"]
-    K --> L["Show 3 branching choices"]
-    L --> M["User chooses one branch"]
-    M --> N["AI generates final consequence"]
-    N --> O["Global Consequence"]
-    N --> P["Lost to History"]
-    N --> Q["Gained by Humanity"]
-    N --> R["Relic image prompt"]
-    R --> S["Generate or display relic image"]
-    S --> T["Save simulation to Convex"]
-    T --> U["User publishes timeline"]
-    U --> V["Timeline appears on Global Dashboard"]
-    V --> W["Other user views timeline"]
-    W --> X["Download or export timeline"]
-    W --> Y["Remix timeline"]
-    Y --> F
+    A[Open AltEra] --> B[Global Dashboard]
+    B --> C{Choose entry point}
+    C -->|Curated| D[Pick timeline + incident]
+    C -->|Museum| E[Upload artifact + label photos]
+    C -->|Stabilize| F[Open chaotic public timeline]
+
+    D --> G[One-sentence What If]
+    G --> H[Phase 1: chaos, ripple, branches]
+    H --> I[User picks 1 of 3 branches]
+    I --> J[Phase 2: consequence, ledger, relic]
+
+    E --> K[Vision extracts artifact + era]
+    K --> L[User picks simulation duration]
+    L --> J
+
+    F --> M[Pick 2 corrective fixes]
+    M --> N[Recompute chaos]
+    N --> O{Chaos < 40?}
+    O -->|Yes| P[WIN — stabilized]
+    O -->|No| M
+
+    J --> Q[Save / Publish]
+    Q --> B
 ```
 
-## Suggested Tech Stack
+---
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js + TypeScript |
-| Styling | Tailwind CSS |
-| Animations | Framer Motion |
-| Realtime database | Convex |
-| AI text generation | OpenAI, Gemini, Claude, or Mistral |
-| Structured AI output | JSON schema / structured outputs |
-| Image generation | OpenAI image generation or another image model |
-| Deployment | Vercel |
+## Architecture
 
-## Recommended AI Architecture
+AltEra is a thin Next.js frontend on top of a Convex backend. All long-running AI work happens inside Convex Node actions (`convex/actions/*`), which call **Groq** for text + vision and **Serper** for incident image enrichment. State and subscriptions are driven entirely by Convex.
 
-TimeLens should not rely only on an LLM's memory. A better design is:
+```mermaid
+flowchart LR
+    subgraph Client[Next.js 16 App Router]
+      U[User] --> UI[React 19 + shadcn/ui + Framer Motion]
+      UI --> Hooks[useQuery / useMutation / useAction]
+    end
 
-```txt
-User selects timeline incident
-        ↓
-Retrieve real historical context from database
-        ↓
-Send context + user What If prompt to LLM
-        ↓
-LLM returns strict JSON
-        ↓
-Frontend renders timeline, chaos score, branches, and ledger
-        ↓
-User chooses a branch
-        ↓
-LLM generates global consequence and relic prompt
-        ↓
-Image model generates or displays relic image
+    subgraph Convex[Convex Backend]
+      Hooks --> Q[Queries]
+      Hooks --> M[Mutations]
+      Hooks --> A[Node Actions]
+      Q --> DB[(Tables + indexes)]
+      M --> DB
+      A --> DB
+      A --> Storage[(Convex Storage)]
+      A --> Telemetry[apiUsageEvents + userUsageTotals]
+    end
+
+    subgraph External[External Services]
+      A --> Groq[Groq LLM<br/>text + vision]
+      A --> Serper[Serper Images]
+    end
+
+    Auth[Convex Auth<br/>Google + Password] --> Hooks
 ```
 
-This keeps the output more grounded and reduces historical hallucinations.
+See [`docs/HIGH_LEVEL_DESIGN.md`](docs/HIGH_LEVEL_DESIGN.md) for the full architecture, and [`docs/LOW_LEVEL_DESIGN.md`](docs/LOW_LEVEL_DESIGN.md) for module-level contracts.
 
-## Core Data Structure
+---
 
-### PredefinedTimeline
+## Tech Stack
 
-```ts
-type PredefinedTimeline = {
-  _id: string;
-  title: string;
-  slug: string;
-  summary: string;
-  coverImageUrl: string;
-  startYear: number;
-  endYear: number;
-  createdAt: number;
-};
+| Layer            | Technology                                              |
+|------------------|---------------------------------------------------------|
+| Framework        | Next.js 16 (App Router, React 19, Turbopack)            |
+| Language         | TypeScript 5.7 (strict)                                 |
+| Styling          | Tailwind CSS v4 + shadcn/ui + Radix primitives          |
+| Animations       | Framer Motion 12, OGL, Three.js, postprocessing         |
+| Backend / DB     | Convex (queries, mutations, Node actions, storage)      |
+| Auth             | `@convex-dev/auth` — Google OAuth + Password            |
+| LLM (text)       | Groq (`llama-3.x` family) via OpenAI-compatible API     |
+| LLM (vision)     | Groq Llama 4 Maverick / Scout (vision)                  |
+| Image search     | Serper Images API (incident backfill, cached in Convex) |
+| Analytics        | `@vercel/analytics`                                     |
+| Deployment       | Vercel (frontend) + Convex Cloud (backend)              |
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js ≥ 20
+- npm ≥ 10
+- A free [Convex](https://convex.dev) account
+- A [Groq](https://console.groq.com/keys) API key
+- *(optional)* [Serper](https://serper.dev) key for incident image enrichment
+
+### Setup
+
+```bash
+git clone https://github.com/<your-user>/altera.git
+cd altera
+
+cp .env.example .env.local
+
+npm run install:all
 ```
 
-### TimelineIncident
+### Run
 
-```ts
-type TimelineIncident = {
-  _id: string;
-  timelineId: string;
-  year: string;
-  title: string;
-  description: string;
-  location?: string;
-  relatedImageUrl?: string;
-  realOutcome: string;
-  order: number;
-};
+Open two terminals from the repo root:
+
+```bash
+npx convex dev
 ```
 
-### Simulation
-
-```ts
-type Simulation = {
-  _id: string;
-  userId: string;
-  originalTimelineId: string;
-  changedIncidentId: string;
-  whatIfPrompt: string;
-
-  chaosScore: number;
-
-  immediateRipple: TimelineEvent[];
-  generationalShift: TimelineEvent[];
-  branchChoices: BranchChoice[];
-
-  selectedBranchId?: string;
-  globalConsequence?: TimelineEvent[];
-
-  lostToHistory?: string[];
-  gainedByHumanity?: string[];
-
-  relicPrompt?: string;
-  relicImageUrl?: string;
-
-  status: "draft" | "generated" | "published";
-  visibility: "private" | "public";
-
-  parentSimulationId?: string;
-  remixOfSimulationId?: string;
-
-  createdAt: number;
-  updatedAt: number;
-};
+```bash
+npm run dev
 ```
 
-### TimelineEvent
+- Frontend: <http://localhost:3000>
+- Convex dashboard: link printed by `npx convex dev`
 
-```ts
-type TimelineEvent = {
-  year: string;
-  title: string;
-  description: string;
-  impactLevel: "low" | "medium" | "high";
-};
+`npm run dev` automatically syncs Convex env vars into `frontend/.env.local` via `scripts/sync-env.mjs`.
+
+### Configure secrets on Convex
+
+```bash
+npx convex env set GROQ_API_KEY <your-groq-key>
+npx convex env set SERPER_API_KEY <your-serper-key>        # optional
+npx convex env set SITE_URL http://localhost:3000/
+npx convex env set AUTH_GOOGLE_ID <client-id>              # optional
+npx convex env set AUTH_GOOGLE_SECRET <client-secret>      # optional
 ```
 
-### BranchChoice
+For demo presentations append `?demo=1` to any AltEra URL — the app uses deterministic fixtures instead of live LLM calls.
 
-```ts
-type BranchChoice = {
-  id: string;
-  title: string;
-  description: string;
-};
+---
+
+## Environment Variables
+
+| Variable                     | Where        | Purpose                                              |
+|------------------------------|--------------|------------------------------------------------------|
+| `NEXT_PUBLIC_CONVEX_URL`     | `.env.local` | Auto-filled by `npx convex dev`                      |
+| `NEXT_PUBLIC_CONVEX_SITE_URL`| `.env.local` | Auto-filled by `npx convex dev`                      |
+| `CONVEX_DEPLOYMENT`          | `.env.local` | Auto-filled by `npx convex dev`                      |
+| `GROQ_API_KEY`               | Convex env   | Required for live AI generation                      |
+| `SERPER_API_KEY`             | Convex env   | Optional — incident image backfill                   |
+| `SITE_URL`                   | Convex env   | OAuth redirect base URL                              |
+| `AUTH_GOOGLE_ID/SECRET`      | Convex env   | Optional — Google OAuth                              |
+| `DEMO_MODE`                  | Either       | Force fixture mode globally                          |
+
+See [`.env.example`](.env.example) for the canonical list.
+
+---
+
+## Project Structure
+
+```
+.
+├── convex/                  # Convex backend
+│   ├── schema.ts            # Tables, indexes, validators
+│   ├── auth.ts              # Convex Auth (Google + Password)
+│   ├── simulations.ts       # Simulation CRUD (queries + mutations)
+│   ├── simulationsInternal.ts
+│   ├── engine.ts            # Orchestration actions (curated + remix)
+│   ├── stabilization.ts     # Stabilize-game queries/mutations
+│   ├── timelines.ts         # Predefined timelines + incidents
+│   ├── published.ts         # Public feed
+│   ├── museumScans.ts       # Museum upload + confirm
+│   ├── usage.ts / usageInternal.ts
+│   ├── actions/             # "use node" LLM actions
+│   │   ├── generatePhaseOne.ts
+│   │   ├── generatePhaseTwo.ts
+│   │   ├── generateTimelineFromDuration.ts
+│   │   ├── analyzeMuseumPhotos.ts
+│   │   ├── stabilizeTimeline.ts
+│   │   ├── suggestTimeDurations.ts
+│   │   ├── generateRelicImage.ts
+│   │   ├── fetchIncidentImages.ts
+│   │   └── fetchSimulationEventImages.ts
+│   ├── lib/                 # Groq client, normalizers, fixtures, billing
+│   └── seed/                # Curated timelines + demo fixtures
+│
+├── frontend/                # Next.js 16 app
+│   ├── app/                 # App Router pages
+│   │   ├── dashboard/       # Global multiverse feed
+│   │   ├── timelines/       # Curated timeline picker
+│   │   ├── simulate/[id]/   # What-if + phase 1/2 viewer
+│   │   ├── simulation/[id]/ # Public simulation viewer
+│   │   ├── museum/          # Museum scan flow
+│   │   ├── my-timelines/    # User's simulations
+│   │   ├── community/       # Stabilize game entry
+│   │   ├── signin/, signup/, login/, account/, profile/
+│   │   ├── layout.tsx       # Convex providers + fonts
+│   │   └── globals.css
+│   ├── components/
+│   │   ├── simulate/, simulation/, dashboard/, stabilize/
+│   │   ├── timelines/, museum/, visuals/, ui/  # shadcn
+│   │   └── layout/, auth/, home/
+│   ├── lib/, hooks/, public/
+│   └── proxy.ts             # Next.js middleware/proxy
+│
+├── docs/
+│   ├── HIGH_LEVEL_DESIGN.md
+│   ├── LOW_LEVEL_DESIGN.md
+│   └── TEST_PROMPTS.md
+├── scripts/
+│   ├── sync-env.mjs         # Copy root .env.local → frontend
+│   └── download-seed-images.mjs
+├── DEMO.md                  # Judge demo script
+├── AGENTS.md / CLAUDE.md    # AI agent instructions
+└── package.json
 ```
 
-### PublishedTimeline
+---
 
-```ts
-type PublishedTimeline = {
-  _id: string;
-  simulationId: string;
-  authorId: string;
+## Available Scripts
 
-  title: string;
-  description: string;
-  thumbnailUrl?: string;
+From the repo root:
 
-  downloads: number;
-  remixes: number;
-  likes: number;
+| Command                       | What it does                                             |
+|-------------------------------|----------------------------------------------------------|
+| `npm run install:all`         | Install root + frontend dependencies                     |
+| `npm run dev`                 | Sync env vars and start the Next.js dev server           |
+| `npm run dev:convex`          | Start Convex dev (`npx convex dev`)                      |
+| `npm run dev:frontend`        | Start only the frontend after syncing env vars           |
+| `npm run build`               | Production build of the frontend                         |
+| `npm run start`               | Start the production frontend                            |
+| `npm run lint`                | ESLint (Next.js + Convex rules)                          |
+| `npm run sync-env`            | Copy root `.env.local` → `frontend/.env.local`           |
+| `npm run fetch-incident-images` | Backfill incident images via Serper                    |
 
-  createdAt: number;
-};
-```
+---
 
-### Remix
+## Documentation
 
-```ts
-type Remix = {
-  _id: string;
-  originalSimulationId: string;
-  remixedSimulationId: string;
-  originalAuthorId: string;
-  remixAuthorId: string;
+- [**DEMO.md**](DEMO.md) — Two-minute judge demo script (museum → curated → stabilize).
+- [**docs/HIGH_LEVEL_DESIGN.md**](docs/HIGH_LEVEL_DESIGN.md) — System architecture, flows, scalability concerns.
+- [**docs/LOW_LEVEL_DESIGN.md**](docs/LOW_LEVEL_DESIGN.md) — Module-level design, data model, API contracts.
+- [**docs/TEST_PROMPTS.md**](docs/TEST_PROMPTS.md) — Hand-curated "What if?" prompts for QA.
 
-  changedIncidentId: string;
-  newWhatIfPrompt: string;
+---
 
-  createdAt: number;
-};
-```
-
-### ExportFile
-
-```ts
-type ExportFile = {
-  _id: string;
-  simulationId: string;
-  userId: string;
-
-  format: "pdf" | "json" | "image";
-  fileUrl: string;
-
-  createdAt: number;
-};
-```
-
-## AI JSON Output Example
-
-```json
-{
-  "chaosScore": 87,
-  "immediateRipple": [
-    {
-      "year": "1915",
-      "title": "A Diplomatic Crisis Without War",
-      "description": "The failed assassination attempt creates outrage, but European leaders delay military escalation.",
-      "impactLevel": "high"
-    }
-  ],
-  "generationalShift": [
-    {
-      "year": "1940",
-      "title": "Empires Decay Slowly",
-      "description": "Without the shock of World War I, old European empires survive longer but face deeper internal unrest.",
-      "impactLevel": "high"
-    }
-  ],
-  "branchChoices": [
-    {
-      "id": "branch_1",
-      "title": "Europe chooses diplomacy",
-      "description": "Major powers form a tense diplomatic council to avoid continent-wide war."
-    },
-    {
-      "id": "branch_2",
-      "title": "Militarism intensifies",
-      "description": "Nations avoid war temporarily but expand armies and weapons programs."
-    },
-    {
-      "id": "branch_3",
-      "title": "Nationalist revolts spread",
-      "description": "Ethnic and nationalist movements challenge the old imperial order from within."
-    }
-  ],
-  "lostToHistory": [
-    "The original Treaty of Versailles",
-    "The League of Nations in its known form"
-  ],
-  "gainedByHumanity": [
-    "A permanent European crisis council",
-    "Delayed mechanized warfare doctrine"
-  ],
-  "relicPrompt": "A museum photograph of a 1930s European diplomatic council medal from an alternate timeline where World War I never began, brass and enamel, archival lighting, realistic historical artifact."
-}
-```
-
-## MVP Development Plan
-
-### Tier 1: Core MVP
-
-- Predefined timeline selection
-- Incident selection
-- Context briefing
-- One-sentence What If input
-- AI-generated timeline JSON
-- Timeline viewer
-
-### Tier 2: Engagement Layer
-
-- Chaos Score meter
-- Lost to History vs Gained by Humanity ledger
-- Branching decision choices
-- Save simulation to Convex
-
-### Tier 3: Wow Features
-
-- Relic image generation
-- Global realtime dashboard
-- Publish and remix timelines
-- Demo mode with a pre-seeded golden path
-- Cinematic Framer Motion timeline animations
-
-## Demo Safety Net
-
-Live AI calls can fail, lag, or become expensive during presentations. TimeLens should include a **Demo Mode** with one pre-saved polished simulation.
-
-Example demo:
-
-```txt
-Timeline: World War I
-Incident: Assassination of Archduke Franz Ferdinand
-What if: The assassin hesitates and the motorcade escapes Sarajevo.
-```
-
-This lets the team demonstrate the full UI, animations, chaos score, branching, ledger, and relic image even if the network or AI API fails.
-
-## Future Enhancements
+## Roadmap
 
 - AI video generation for cinematic timeline moments
 - Interactive alternate world map
-- Location-based historical mode using phone camera input
-- Classroom mode for teachers and students
-- Public voting on best alternate timelines
-- Timeline PDF export with generated images
-- Multilingual historical simulations
+- Location-based historical mode using camera input
+- Classroom mode (teacher / student roles)
+- Community voting on best alternate timelines
+- PDF export of timelines with generated images
+- Multilingual simulations
 
-## Project Vision
+---
 
-AltEra turns history into an interactive simulation. It helps users understand that history is not just a list of events, but a chain of causes and consequences. By combining real historical context, AI-generated alternate timelines, branching decisions, and visual relics, the app makes the question **"What if?"** feel alive.
+## Contributing
 
-## Development
+This started as a buildathon project, but contributions are welcome.
 
-```bash
-npm run install:all
-npx convex dev        # terminal 1 (repo root — writes .env.local)
-npm run dev           # terminal 2 — syncs env + http://localhost:3000
-```
+1. Fork & branch from `main`.
+2. Run `npm run install:all` and `npm run lint`.
+3. Follow the rules in [`AGENTS.md`](AGENTS.md) — Convex conventions, Next.js 16 patterns.
+4. Open a PR with a clear description and screenshots/clips for UI changes.
 
-## Project layout
+---
 
-| Path | Purpose |
-|------|---------|
-| `convex/` | Convex backend (database, auth, AI actions) |
-| `frontend/` | Next.js app (`app/`, `components/`, `public/`) |
-| `.env.local` | Repo root — created by `npx convex dev` |
-| `frontend/.env.local` | Auto-synced copy for Next.js (`npm run sync-env`) |
+## License
 
-Copy `.env.example` to `.env.local` at the **repo root**. After `npx convex dev` updates env vars, run `npm run sync-env` (or use `npm run dev`, which syncs automatically). Set `GEMINI_API_KEY` in the Convex dashboard for AI actions.
+Released under the [MIT License](LICENSE).
+
+<div align="center">
+
+Built with curiosity about the timelines that never were.
+
+</div>
