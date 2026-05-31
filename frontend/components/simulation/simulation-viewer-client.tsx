@@ -76,7 +76,7 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
   const [isSaving, setIsSaving] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
   const [publishOpen, setPublishOpen] = useState(false)
-  const { loggedIn, mounted: authMounted } = useAuth()
+  const { loggedIn, isGuest, mounted: authMounted } = useAuth()
   const currentUser = useQuery(api.users.current)
   const publishedRecord = useQuery(
     api.published.getForSimulation,
@@ -117,7 +117,6 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
 
   const goToRemix = () => router.push(remixHref)
 
-  const signInRedirect = `/signin?redirect=${encodeURIComponent(`/simulation/${simulationId}`)}`
   const isSaved =
     convexSim?.status === 'saved' || convexSim?.status === 'published'
 
@@ -126,11 +125,7 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
       toast.info('Demo timelines are preview-only — run a simulation from Browse Timelines to save.')
       return
     }
-    if (!authMounted) return
-    if (!loggedIn) {
-      router.push(signInRedirect)
-      return
-    }
+    if (!authMounted || !loggedIn) return
     if (isSaved) {
       toast.info('Already saved to My Timelines')
       return
@@ -142,7 +137,7 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
       })
       toast.success('Saved to My Timelines')
     } catch {
-      toast.error('Could not save. Sign in and try again.')
+      toast.error('Could not save. Try again.')
     } finally {
       setIsSaving(false)
     }
@@ -166,8 +161,8 @@ export function SimulationViewerClient({ simulationId }: SimulationViewerClientP
       })
       if (result === 'shared') {
         toast.success('Shared!')
-      } else if (!loggedIn) {
-        toast.success('Link copied — sign in so others can open it')
+      } else if (isGuest) {
+        toast.success('Link copied — create an account to keep timelines across devices')
       } else {
         toast.success('Link copied to clipboard')
       }

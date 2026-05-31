@@ -65,7 +65,7 @@ export default function SignInPage() {
   return (
     <AuthScreen
       title="Welcome back"
-      subtitle="Sign in to save simulations and join the community"
+      subtitle="Optional — link your guest timelines to Google or email"
     >
       <div className="space-y-6">
         <GoogleSignInButton

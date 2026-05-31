@@ -43,7 +43,7 @@ export function AuthScreen({ children, title, subtitle }: AuthScreenProps) {
 
         <p className="mt-6 text-center text-xs text-white/40">
           <Link href="/timelines" className="hover:text-white/60 transition-colors">
-            Browse timelines without signing in
+            Continue as guest — sign in anytime to sync across devices
           </Link>
         </p>
       </div>

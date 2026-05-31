@@ -10,6 +10,7 @@ export const current = query({
       name: v.optional(v.string()),
       email: v.optional(v.string()),
       image: v.optional(v.string()),
+      isGuest: v.boolean(),
     }),
     v.null(),
   ),
@@ -23,6 +24,7 @@ export const current = query({
       name: user.name,
       email: user.email,
       image: user.image,
+      isGuest: user.isAnonymous === true,
     };
   },
 });

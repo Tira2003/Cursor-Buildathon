@@ -18,7 +18,7 @@ const navLinks = [
 export function Header() {
   const pathname = usePathname()
   const router = useRouter()
-  const { loggedIn, displayName, logout, mounted } = useAuth()
+  const { loggedIn, isGuest, hasAccount, displayName, logout, mounted } = useAuth()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -84,20 +84,33 @@ export function Header() {
               as the default — they'll swap to the profile button if needed. */}
           <div className="flex items-center gap-2 shrink-0">
             {mounted && loggedIn ? (
-              /* Logged-in: profile avatar + dropdown */
-              <div className="relative" ref={dropdownRef}>
+              /* Signed in (guest or account): profile avatar + dropdown */
+              <div className="relative flex items-center gap-2" ref={dropdownRef}>
+                {isGuest && (
+                  <Link
+                    href="/signin"
+                    className="hidden sm:inline-flex px-3 py-2 text-xs font-medium rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                )}
                 <button
                   onClick={() => setDropdownOpen((o) => !o)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors text-sm font-medium"
                 >
                   <UserCircle2 className="w-5 h-5 text-primary" />
                   <span className="hidden sm:inline max-w-[120px] truncate">
-                    {displayName || 'Profile'}
+                    {displayName || (isGuest ? 'Guest' : 'Profile')}
                   </span>
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-44 rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 shadow-xl overflow-hidden z-50">
+                  <div className="absolute right-0 top-full mt-2 w-52 rounded-xl bg-black/80 backdrop-blur-xl border border-white/10 shadow-xl overflow-hidden z-50">
+                    {isGuest && (
+                      <div className="px-4 py-3 text-xs text-white/60 border-b border-white/10">
+                        Guest session — sign in to keep timelines across devices.
+                      </div>
+                    )}
                     <Link
                       href="/profile"
                       onClick={() => setDropdownOpen(false)}
@@ -121,37 +134,29 @@ export function Header() {
                       <Receipt className="w-4 h-4" />
                       Usage &amp; Billing
                     </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors border-t border-white/10"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Log out
-                    </button>
+                    {hasAccount ? (
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors border-t border-white/10"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Log out
+                      </button>
+                    ) : (
+                      <Link
+                        href="/signup"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-3 text-sm text-primary hover:bg-white/10 transition-colors border-t border-white/10"
+                      >
+                        Create account
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
             ) : (
-              /* Logged-out (also the pre-hydration default): Login + Sign up */
-              <>
-                <Link
-                  href="/signin"
-                  className={cn(
-                    'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-                    pathname === '/signin'
-                      ? 'text-white bg-white/10'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                  )}
-                >
-                  Log in
-                </Link>
-                <Link
-                  href="/signup"
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/85 transition-colors"
-                >
-                  Sign up
-                </Link>
-              </>
+              /* Pre-hydration: compact placeholder */
+              <div className="h-9 w-24 rounded-lg bg-white/5 animate-pulse" aria-hidden />
             )}
           </div>
 

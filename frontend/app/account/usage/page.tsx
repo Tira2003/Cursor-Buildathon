@@ -2,8 +2,6 @@
 
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 import { useQuery } from 'convex/react'
 import { ArrowLeft, Cpu, ImageIcon, Receipt, Zap } from 'lucide-react'
 import { Header } from '@/components/layout/header'
@@ -53,16 +51,9 @@ function formatDate(ts: number): string {
 }
 
 export default function UsageBillingPage() {
-  const router = useRouter()
-  const { loggedIn, mounted } = useAuth()
-  const summary = useQuery(api.usage.getMyUsageSummary, {})
-  const events = useQuery(api.usage.listMyUsageEvents, { limit: 50 })
-
-  useEffect(() => {
-    if (mounted && !loggedIn) {
-      router.replace('/signin')
-    }
-  }, [mounted, loggedIn, router])
+  const { loggedIn, isGuest, mounted } = useAuth()
+  const summary = useQuery(api.usage.getMyUsageSummary, loggedIn ? {} : 'skip')
+  const events = useQuery(api.usage.listMyUsageEvents, loggedIn ? { limit: 50 } : 'skip')
 
   if (!mounted || !loggedIn) {
     return (
@@ -105,6 +96,15 @@ export default function UsageBillingPage() {
               API usage for Groq (timeline generation) and Serper (historical images).
               Costs are estimated from official provider rates.
             </p>
+            {isGuest && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Guest session —{' '}
+                <Link href="/signin?redirect=/account/usage" className="text-primary hover:underline">
+                  sign in
+                </Link>{' '}
+                to keep usage history across devices.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

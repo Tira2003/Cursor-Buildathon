@@ -1,6 +1,11 @@
 import Google from "@auth/core/providers/google";
+import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
 import { convexAuth } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
+
+function guestDisplayName(): string {
+  return `Guest ${Math.floor(Math.random() * 10_000)}`;
+}
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -8,6 +13,14 @@ function normalizeEmail(email: string): string {
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
+    Anonymous({
+      profile() {
+        return {
+          isAnonymous: true,
+          name: guestDisplayName(),
+        };
+      },
+    }),
     Google({
       profile(profile) {
         const sub = typeof profile.sub === "string" ? profile.sub : "";

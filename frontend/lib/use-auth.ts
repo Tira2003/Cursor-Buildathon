@@ -17,7 +17,9 @@ export function useAuth() {
   }, [])
 
   const loggedIn = mounted && !authLoading && isAuthenticated
-  const displayName = currentUser?.name?.trim() ?? ''
+  const isGuest = loggedIn && (currentUser?.isGuest ?? !currentUser?.email)
+  const hasAccount = loggedIn && !isGuest
+  const displayName = currentUser?.name?.trim() ?? (isGuest ? 'Guest' : '')
   const email = currentUser?.email?.trim() ?? ''
 
   const logout = useCallback(async () => {
@@ -29,5 +31,5 @@ export function useAuth() {
     // no-op; kept for API compatibility with legacy call sites
   }, [])
 
-  return { loggedIn, displayName, email, login, logout, mounted }
+  return { loggedIn, isGuest, hasAccount, displayName, email, login, logout, mounted }
 }

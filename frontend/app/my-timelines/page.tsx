@@ -40,7 +40,7 @@ function formatDate(timestamp: number) {
 }
 
 export default function MyTimelinesPage() {
-  const { loggedIn, mounted } = useAuth()
+  const { loggedIn, isGuest, mounted } = useAuth()
   const sims = useQuery(api.simulations.listMine, loggedIn ? {} : 'skip')
 
   return (
@@ -87,18 +87,14 @@ export default function MyTimelinesPage() {
               </p>
             </div>
 
-            {mounted && !loggedIn && (
-              <div className="rounded-lg border border-dashed border-border p-12 text-center">
-                <p className="text-muted-foreground mb-4">
-                  Sign in to see your simulations.
-                </p>
-                <Link
-                  href="/signin?redirect=/my-timelines"
-                  className="text-primary hover:underline text-sm font-medium"
-                >
+            {mounted && isGuest && (
+              <p className="text-sm text-muted-foreground mb-6 rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
+                You&apos;re browsing as a guest.{' '}
+                <Link href="/signin?redirect=/my-timelines" className="text-primary hover:underline">
                   Sign in
-                </Link>
-              </div>
+                </Link>{' '}
+                to sync timelines across devices.
+              </p>
             )}
 
             {loggedIn && sims === undefined && (
